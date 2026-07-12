@@ -1,0 +1,252 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { useBookingTimeline } from '../hooks/useBookingTimeline';
+import { useScore } from '../hooks/useScore';
+import { RaceTrack } from '../components/booking/RaceTrack';
+import { RelayBonusFlash } from '../components/booking/RelayBonusFlash';
+import { CapFiringIndicator } from '../components/booking/CapFiringIndicator';
+import { motion } from 'framer-motion';
+import { User, ShieldAlert, Sparkles, HelpCircle } from 'lucide-react';
+import { triggerRelayBonus, triggerNoteSpam, resetMockState } from '../api/client';
+
+export default function BookingTimelinePage() {
+  const bookingId = 'b100';
+  const { data: timeline, error: timelineError, loading: timelineLoading } = useBookingTimeline(bookingId);
+  
+  // Load scores for u1 (Asha) and u2 (Rahul) to show in the dual scoreboards
+  const { data: scoreU1, loading: u1Loading } = useScore('u1');
+  const { data: scoreU2, loading: u2Loading } = useScore('u2');
+
+  const [showRelay, setShowRelay] = useState(false);
+  const [showCap, setShowCap] = useState(false);
+  const [activeCapAction, setActiveCapAction] = useState("");
+  const [relayGlow, setRelayGlow] = useState(false);
+  const [shakeU1, setShakeU1] = useState(false);
+
+  // Track event IDs that have already been animated
+  const animatedEventIds = useRef(new Set());
+
+  useEffect(() => {
+    if (timeline && timeline.events) {
+      timeline.events.forEach(event => {
+        if (!animatedEventIds.current.has(event.id)) {
+          // New event detected!
+          animatedEventIds.current.add(event.id);
+          
+          if (event.type === 'RELAY_BONUS') {
+            // Trigger Relay Flash Overlay
+            setShowRelay(true);
+            setRelayGlow(true);
+            setTimeout(() => {
+              setShowRelay(false);
+            }, 4000);
+            setTimeout(() => {
+              setRelayGlow(false);
+            }, 6000); // Glow lasts longer
+          } 
+          
+          if (event.type === 'CAP_FIRED') {
+            // Trigger Cap Firing Indicator Toast
+            setActiveCapAction(event.action === 'BOOKING_NOTE_ADDED' ? 'Add Booking Notes' : event.action);
+            setShowCap(true);
+            setShakeU1(true);
+            setTimeout(() => {
+              setShowCap(false);
+            }, 4000);
+            setTimeout(() => {
+              setShakeU1(false);
+            }, 1000); // Shake is brief
+          }
+        }
+      });
+    }
+  }, [timeline]);
+
+  const handleReset = () => {
+    resetMockState();
+    animatedEventIds.current.clear();
+    setShowRelay(false);
+    setShowCap(false);
+    setRelayGlow(false);
+    setShakeU1(false);
+    window.dispatchEvent(new CustomEvent('dealerxp_update'));
+  };
+
+  const isLoading = timelineLoading || u1Loading || u2Loading;
+  const isError = timelineError;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-slate-950 text-slate-400 p-8 rounded-2xl">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        <p className="text-sm font-semibold mt-4">Loading Booking Race Track...</p>
+      </div>
+    );
+  }
+
+  if (isError || !timeline) {
+    return (
+      <div className="bg-red-950/40 border border-red-900 rounded-2xl p-8 text-center max-w-lg mx-auto my-12 text-slate-300">
+        <h3 className="text-red-400 font-bold text-lg">Error loading booking timeline</h3>
+        <p className="text-red-500 text-sm mt-2">Make sure the booking exists and the API is running.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-bg-canvas text-slate-100 p-6 md:p-8 rounded-2xl shadow-2xl relative overflow-hidden space-y-8 min-h-[80vh] border border-slate-800">
+      
+      {/* Background grids and glowing blobs for premium aesthetic */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10 border-b border-slate-800 pb-6">
+        <div>
+          <span className="text-xs font-bold text-teal-400 uppercase tracking-widest">
+            Booking Centerpiece
+          </span>
+          <h1 className="text-3xl font-extrabold font-heading text-white tracking-tight mt-1">
+            Booking Lifecycle Race Track
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Customer: <span className="text-slate-200 font-semibold">{timeline.customerName}</span> • ID: <span className="font-mono text-slate-300">{timeline.bookingId}</span>
+          </p>
+        </div>
+
+        {/* Demo trigger controls directly visible on the centerpiece page for judges */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={triggerRelayBonus}
+            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white text-xs font-bold rounded-lg shadow-lg hover:shadow-teal-500/20 transition-all duration-200"
+          >
+            ⚡ Simulate Finance Approval (Relay Bonus)
+          </button>
+          <button
+            type="button"
+            onClick={triggerNoteSpam}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-slate-700 transition-all duration-200"
+          >
+            ✍️ Add Note (Cap Test)
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-3 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-bold rounded-lg border border-red-900/50 transition-all duration-200"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Race Track */}
+      <div className="relative z-10">
+        <RaceTrack booking={timeline} />
+      </div>
+
+      {/* Synchronized Scoreboards Area */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+        {/* Asha (DSE) Scoreboard */}
+        <motion.div 
+          className={`bg-slate-900/80 border rounded-xl p-5 relative overflow-hidden transition-all duration-500 ${
+            relayGlow 
+              ? 'border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.3)]' 
+              : 'border-slate-800'
+          }`}
+          animate={shakeU1 ? { x: [-10, 10, -10, 10, 0] } : relayGlow ? { scale: [1, 1.08, 1] } : {}}
+          transition={shakeU1 ? { duration: 0.5 } : { duration: 0.8 }}
+        >
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading text-sm font-bold text-white">Asha</h3>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  Dealer Sales Executive
+                </span>
+              </div>
+            </div>
+            {scoreU1.capsActive?.includes('BOOKING_NOTE_ADDED') && (
+              <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <ShieldAlert className="w-3 h-3" />
+                CAPPED
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold font-numeric text-white tracking-tight">
+              {scoreU1.points}
+            </span>
+            <span className="text-xs text-slate-400 font-bold">XP</span>
+          </div>
+
+          {relayGlow && (
+            <div className="text-teal-400 text-xs mt-2 font-bold animate-pulse flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" />
+              Relay Bonus Active! +50 XP added
+            </div>
+          )}
+        </motion.div>
+
+        {/* Rahul (Finance) Scoreboard */}
+        <motion.div 
+          className={`bg-slate-900/80 border rounded-xl p-5 relative overflow-hidden transition-all duration-500 ${
+            relayGlow 
+              ? 'border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.3)]' 
+              : 'border-slate-800'
+          }`}
+          animate={relayGlow ? { scale: [1, 1.08, 1] } : {}}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading text-sm font-bold text-white">Rahul</h3>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  Finance approval specialist
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold font-numeric text-white tracking-tight">
+              {scoreU2.points}
+            </span>
+            <span className="text-xs text-slate-400 font-bold">XP</span>
+          </div>
+
+          {relayGlow && (
+            <div className="text-teal-400 text-xs mt-2 font-bold animate-pulse flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" />
+              Relay Bonus Active! +50 XP added
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Helpful Instructions Overlay */}
+      <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 relative z-10 flex items-start gap-3">
+        <HelpCircle className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-slate-400 leading-relaxed">
+          <p className="font-semibold text-slate-300">How to demonstrate the two key moments:</p>
+          <ul className="list-disc ml-4 mt-1 space-y-1">
+            <li>Click <span className="text-teal-400 font-bold">⚡ Simulate Finance Approval</span>: The booking advances on the racetrack, a full-screen Relay Bonus banner appears, and both Asha's and Rahul's scores animate upwards and glow in sync!</li>
+            <li>Click <span className="text-slate-300 font-bold">✍️ Add Note</span>: Asha adds notes. The 5th note triggers the cap warning, Asha's card shakes briefly, and subsequent notes will not increase points anymore, showcasing the anti-gaming limits.</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Overlay Animations */}
+      <RelayBonusFlash active={showRelay} />
+      <CapFiringIndicator active={showCap} actionName={activeCapAction} />
+    </div>
+  );
+}

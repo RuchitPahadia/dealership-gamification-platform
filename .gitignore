@@ -1,0 +1,9 @@
+# Node modules & build outputs
+node_modules/
+dist/
+.vite/
+.env
+
+# Ignore all markdown files in root/subfolders (to exclude Agent.md, PRD.md, etc.)
+*.md
+**/*.md
