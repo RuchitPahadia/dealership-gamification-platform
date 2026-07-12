@@ -1,0 +1,84 @@
+{
+  "actions": [
+    {
+      "action": "BOOKING_CANCELLED_AFTER_FINANCE",
+      "weight": -120
+    },
+    {
+      "action": "BOOKING_CONFIRMED",
+      "weight": 80
+    },
+    {
+      "action": "BOOKING_CREATED",
+      "weight": 30
+    },
+    {
+      "action": "CUSTOMER_ELIGIBILITY_VERIFIED",
+      "weight": 70
+    },
+    {
+      "action": "CUSTOMER_FOLLOWUP_SLA_MET",
+      "weight": 60
+    },
+    {
+      "action": "DELIVERED",
+      "weight": 220
+    },
+    {
+      "action": "DISCOUNT_APPROVED",
+      "weight": 55
+    },
+    {
+      "action": "DOCUMENT_SET_COMPLETED",
+      "weight": 95
+    },
+    {
+      "action": "ESCALATION_FREE_DELIVERY",
+      "weight": 140
+    },
+    {
+      "action": "FINANCE_APPROVAL_SLA_MET",
+      "weight": 65
+    },
+    {
+      "action": "FINANCE_APPROVED",
+      "weight": 110
+    },
+    {
+      "action": "FINANCE_APPROVED_FIRST_PASS",
+      "weight": 130
+    },
+    {
+      "action": "FINANCE_SUBMITTED",
+      "weight": 60
+    },
+    {
+      "action": "FOLLOW_UP_COMPLETED",
+      "weight": 20
+    },
+    {
+      "action": "INVOICE_APPROVED",
+      "weight": 120
+    },
+    {
+      "action": "LOAN_STRUCTURED",
+      "weight": 75
+    },
+    {
+      "action": "PDI_COMPLETED",
+      "weight": 65
+    },
+    {
+      "action": "REWORK_LOOP_TRIGGERED",
+      "weight": -90
+    },
+    {
+      "action": "RTO_REQUEST",
+      "weight": 55
+    },
+    {
+      "action": "ZERO_REWORK_BOOKING_BONUS",
+      "weight": 140
+    }
+  ]
+}
