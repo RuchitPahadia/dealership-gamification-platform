@@ -4,6 +4,14 @@ dist/
 .vite/
 .env
 
-# Ignore all markdown files in root/subfolders (to exclude Agent.md, PRD.md, etc.)
-*.md
-**/*.md
+# Ignore stray AI/planning notes at the repo root, but NOT docs/ or README.md —
+# the blanket **/*.md rule this replaced was silently excluding docs/demo_script.md,
+# a required deliverable, from every commit.
+/Agent.md
+/PRD.md
+/ai.txt
+!README.md
+!docs/*.md
+
+# Local, non-shared state for the seed script (resume/idempotency tracking)
+database/seed/.seed_state.json
