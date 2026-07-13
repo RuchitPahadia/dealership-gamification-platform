@@ -1,0 +1,71 @@
+version: "3.9"
+
+# NOTE (Dev 4 / integration): backend does not read from Postgres or Redis yet
+# (requirements.txt only has fastapi/uvicorn/pydantic/pytest, and runtime_state.py
+# is pure in-memory). These services are wired in now so the environment is ready
+# the moment Dev 1 lands the DB-backed scoring engine — they're inert until then.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dealerxp-postgres
+    environment:
+      POSTGRES_DB: dealerxp
+      POSTGRES_USER: dealerxp
+      POSTGRES_PASSWORD: dealerxp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealerxp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: dealerxp-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: deployment/backend.Dockerfile
+    container_name: dealerxp-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://dealerxp:dealerxp@postgres:5432/dealerxp
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../deployment/frontend.Dockerfile
+    container_name: dealerxp-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
