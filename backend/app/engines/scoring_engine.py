@@ -42,13 +42,16 @@ def read_scoring_events() -> list[dict]:
 
     for timeline in booking_timelines.values():
         for event in timeline:
-            action = str(event["action"])
+            action = str(event.get("action", "")).strip()
             points = catalog_service.get_weight(action)
 
             if points == 0:
                 continue
 
-            scoring_event = {field: event[field] for field in SCORING_FIELDS}
+            scoring_event = {
+                field: event.get(field) 
+                for field in SCORING_FIELDS
+                            }
 
             scoring_event["points"] = points
             scoring_event["is_real_delivery"] = (
