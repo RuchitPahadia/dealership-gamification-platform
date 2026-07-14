@@ -1,0 +1,16 @@
+CSV FILES 
+
+z_event_log_may_june_2026.csv - A log of all events for May and June - 
+
+Key Columns - DEPARTMENT, USER NAME, USER ID (ties into Employee), Enquiry No, Location Code, and Action Code
+
+NOTE: The Combination of Enquiry Number and Location Code is UNIQUE
+
+
+z_employees.csv - EMPLOYEE DATA
+
+z_locations.csv - LOCATION DATA
+
+
+LOCATION CODE is used in ALL PLACES and that is tied to a LOCATION NAME
+ 
