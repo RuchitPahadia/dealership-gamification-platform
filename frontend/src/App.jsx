@@ -27,13 +27,14 @@ import {
   Moon,
   BarChart3
 } from 'lucide-react';
-import { triggerRelayBonus, triggerNoteSpam, resetMockState } from './api/client';
+import { triggerRelayBonus, triggerNoteSpam, resetMockState, getPendingBookings } from './api/client';
 
 import { LoginForm } from './components/dashboard/LoginForm';
 
 function AppLayout({ children }) {
   const [userId, setUserId] = useState(localStorage.getItem('dealerxp_user_id') || '');
   const [theme, setTheme] = useState(localStorage.getItem('dealerxp_theme') || 'light');
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -42,6 +43,33 @@ function AppLayout({ children }) {
     window.addEventListener('dealerxp_update', handleUpdate);
     return () => window.removeEventListener('dealerxp_update', handleUpdate);
   }, []);
+
+  useEffect(() => {
+    const fetchPendingCount = () => {
+      if (userId === 'u3') {
+        getPendingBookings()
+          .then(res => {
+            if (res && res.bookings) {
+              setPendingCount(res.bookings.filter(b => b.status === 'PENDING').length);
+            }
+          })
+          .catch(e => console.error("Failed to fetch pending count", e));
+      } else {
+        setPendingCount(0);
+      }
+    };
+
+    fetchPendingCount();
+
+    const handleUpdate = () => {
+      fetchPendingCount();
+    };
+
+    window.addEventListener('dealerxp_update', handleUpdate);
+    return () => {
+      window.removeEventListener('dealerxp_update', handleUpdate);
+    };
+  }, [userId]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -140,6 +168,30 @@ function AppLayout({ children }) {
     { to: '/analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5 text-amber-400" /> },
   ];
 
+  const filteredNavItems = navItems.filter(item => {
+    const isAdmin = userId === 'u3' || role.toLowerCase().includes('admin');
+    
+    if (isAdmin) {
+      // Admin should ONLY see Admin Console and Analytics
+      return ['/admin', '/analytics'].includes(item.to);
+    } else {
+      // Employees should NEVER see Admin Console or Analytics
+      if (['/admin', '/analytics'].includes(item.to)) {
+        return false;
+      }
+      
+      // Filter out workspaces that don't match the employee's role
+      const isFinance = role.toLowerCase().includes('finance');
+      if (isFinance && item.to === '/dse-dashboard') {
+        return false;
+      }
+      if (!isFinance && item.to === '/finance-dashboard') {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-bg-surface dark:bg-slate-950 font-body text-neutral-800 dark:text-slate-200 transition-colors duration-200">
       
@@ -160,20 +212,27 @@ function AppLayout({ children }) {
 
         {/* Nav Links */}
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto no-scrollbar">
-          {navItems.map(item => (
+          {filteredNavItems.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                `flex items-center justify-between px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-150 ${
                   isActive 
                     ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/10' 
                     : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
                 }`
               }
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <div className="flex items-center gap-3">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {item.to === '/admin' && pendingCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-extrabold text-white animate-pulse">
+                  {pendingCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

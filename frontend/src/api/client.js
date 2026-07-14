@@ -313,3 +313,129 @@ export async function getDashboardSummary() {
   const state = loadState();
   return state.analytics || defaultState.analytics;
 }
+
+export async function getBookings() {
+  await delay(100);
+  const state = loadState();
+  return Object.values(state.timeline).map(t => ({
+    id: t.bookingId,
+    enquiry_number: t.enquiryNumber || null,
+    requested_by: t.requestedBy || 'u1',
+    location_code: t.locationCode || 'Mumbai Central',
+    status: t.status || 'CONFIRMED'
+  }));
+}
+
+export async function getPendingBookings() {
+  await delay(100);
+  const state = loadState();
+  return {
+    bookings: Object.values(state.timeline)
+      .filter(t => t.status === 'PENDING')
+      .map(t => ({
+        id: t.bookingId,
+        enquiry_number: t.enquiryNumber || null,
+        requested_by: t.requestedBy || 'u1',
+        location_code: t.locationCode || 'Mumbai Central',
+        status: 'PENDING'
+      }))
+  };
+}
+
+export async function requestBooking(bookingId, enquiryNumber, userId) {
+  await delay(100);
+  const state = loadState();
+  if (state.timeline[bookingId]) {
+    return { success: false, message: "Booking ID may already exist" };
+  }
+  state.timeline[bookingId] = {
+    bookingId,
+    enquiryNumber,
+    requestedBy: userId || 'u1',
+    locationCode: 'Mumbai Central',
+    status: 'PENDING',
+    stages: [
+      { key: "BOOKING_CREATED", done: false },
+      { key: "DISCOUNT_APPROVED", done: false },
+      { key: "FINANCE_APPROVED", done: false },
+      { key: "INVOICE_APPROVED", done: false },
+      { key: "RTO_REQUEST", done: false },
+      { key: "PDI_COMPLETED", done: false },
+      { key: "DELIVERED", done: false }
+    ],
+    events: []
+  };
+  saveState(state);
+  window.dispatchEvent(new CustomEvent('dealerxp_update'));
+  return { success: true };
+}
+
+export async function confirmBooking(bookingId) {
+  await delay(150);
+  const state = loadState();
+  const booking = state.timeline[bookingId];
+  if (!booking) return { success: false };
+  if (booking.status === 'CONFIRMED') return { success: true };
+
+  booking.status = 'CONFIRMED';
+  booking.stages = booking.stages.map(s => s.key === 'BOOKING_CREATED' ? { ...s, done: true, at: new Date().toISOString() } : s);
+
+  // Award 30 points to DSE (Asha u1)
+  const requester = booking.requestedBy || 'u1';
+  if (state.score[requester]) {
+    state.score[requester].points += 30;
+    
+    // Update leaderboard points
+    state.leaderboard.individual = state.leaderboard.individual.map(row => {
+      if (row.name === state.score[requester].name) {
+        return { ...row, points: state.score[requester].points };
+      }
+      return row;
+    });
+    state.leaderboard.individual.sort((a, b) => b.points - a.points);
+    state.leaderboard.individual.forEach((row, idx) => {
+      row.rank = idx + 1;
+    });
+  }
+
+  saveState(state);
+  window.dispatchEvent(new CustomEvent('dealerxp_update'));
+  return { success: true };
+}
+
+export async function progressBookingStage(bookingId, stageKey) {
+  await delay(150);
+  const state = loadState();
+  const booking = state.timeline[bookingId];
+  if (!booking) return { success: false };
+
+  booking.stages = booking.stages.map(s => s.key === stageKey ? { ...s, done: true, at: new Date().toISOString() } : s);
+  
+  // Find the point weight for this action
+  const actionWeight = state.weights.find(w => w.action === stageKey);
+  const points = actionWeight ? actionWeight.points : 50;
+
+  // Award points to the corresponding user role (DSE or Finance)
+  const isFinance = ["FINANCE_APPROVED", "INVOICE_APPROVED"].includes(stageKey);
+  const targetUser = isFinance ? "u2" : (booking.requestedBy || "u1");
+  
+  if (state.score[targetUser]) {
+    state.score[targetUser].points += points;
+
+    // Update leaderboard points
+    state.leaderboard.individual = state.leaderboard.individual.map(row => {
+      if (row.name === state.score[targetUser].name) {
+        return { ...row, points: state.score[targetUser].points };
+      }
+      return row;
+    });
+    state.leaderboard.individual.sort((a, b) => b.points - a.points);
+    state.leaderboard.individual.forEach((row, idx) => {
+      row.rank = idx + 1;
+    });
+  }
+
+  saveState(state);
+  window.dispatchEvent(new CustomEvent('dealerxp_update'));
+  return { success: true };
+}

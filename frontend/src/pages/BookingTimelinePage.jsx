@@ -9,7 +9,23 @@ import { User, ShieldAlert, Sparkles, HelpCircle } from 'lucide-react';
 import { triggerRelayBonus, triggerNoteSpam, resetMockState } from '../api/client';
 
 export default function BookingTimelinePage() {
-  const bookingId = 'b100';
+  const [bookingId, setBookingId] = useState('b100');
+  const [allBookings, setAllBookings] = useState([]);
+  const currentUserId = localStorage.getItem('dealerxp_user_id') || 'u1';
+
+  useEffect(() => {
+    const fetchBookings = () => {
+      import('../api/client').then(client => {
+        client.getBookings().then(list => {
+          setAllBookings(list);
+        });
+      });
+    };
+    fetchBookings();
+    window.addEventListener('dealerxp_update', fetchBookings);
+    return () => window.removeEventListener('dealerxp_update', fetchBookings);
+  }, []);
+
   const { data: timeline, error: timelineError, loading: timelineLoading } = useBookingTimeline(bookingId);
   
   // Load scores for u1 (Asha) and u2 (Rahul) to show in the dual scoreboards
@@ -87,7 +103,7 @@ export default function BookingTimelinePage() {
     return (
       <div className="bg-red-950/40 border border-red-900 rounded-2xl p-8 text-center max-w-lg mx-auto my-12 text-slate-300">
         <h3 className="text-red-400 font-bold text-lg">Error loading booking timeline</h3>
-        <p className="text-red-500 text-sm mt-2">Make sure the booking exists and the API is running.</p>
+        <p className="text-red-500 text-sm mt-2">Make sure the booking exists.</p>
       </div>
     );
   }
@@ -109,8 +125,22 @@ export default function BookingTimelinePage() {
           <h1 className="text-3xl font-extrabold font-heading text-white tracking-tight mt-1">
             Booking Lifecycle Race Track
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Customer: <span className="text-slate-200 font-semibold">{timeline.customerName}</span> • ID: <span className="font-mono text-slate-300">{timeline.bookingId}</span>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-slate-400 text-xs font-semibold">Select Booking:</span>
+            <select
+              value={bookingId}
+              onChange={(e) => setBookingId(e.target.value)}
+              className="bg-slate-800 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            >
+              {allBookings.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.id} ({b.status || 'CONFIRMED'})
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-slate-400 text-sm mt-2">
+            Customer: <span className="text-slate-200 font-semibold">{timeline.customerName || `Booking ${timeline.bookingId}`}</span> • ID: <span className="font-mono text-slate-300">{timeline.bookingId}</span>
           </p>
         </div>
 
@@ -139,6 +169,30 @@ export default function BookingTimelinePage() {
           </button>
         </div>
       </div>
+
+      {/* Pending Approval Banner */}
+      {timeline.status === 'PENDING' && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+          <div>
+            <h4 className="text-sm font-bold text-amber-400">Booking Confirmation Pending</h4>
+            <p className="text-xs text-slate-400 mt-1">
+              This booking request must be confirmed by the Branch Manager before the timeline can proceed.
+            </p>
+          </div>
+          {currentUserId === 'u3' && (
+            <button
+              onClick={() => {
+                import('../api/client').then(client => {
+                  client.confirmBooking(bookingId);
+                });
+              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg shadow-lg transition-all duration-200"
+            >
+              Confirm Booking Request
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Race Track */}
       <div className="relative z-10">

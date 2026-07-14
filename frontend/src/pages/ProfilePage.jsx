@@ -36,16 +36,18 @@ export default function ProfilePage() {
         {/* User Info */}
         <div className="flex-1 text-center md:text-left space-y-2">
           <h2 className="text-2xl font-bold font-heading text-neutral-900">{score.name}</h2>
-          <p className="text-brand-primary text-sm font-semibold">Dealer Sales Executive</p>
+          <p className="text-brand-primary text-sm font-semibold">
+            {score.role || (userId === 'u3' ? 'Branch Manager (Admin)' : userId === 'u2' ? 'Finance Specialist' : 'Dealer Sales Executive')}
+          </p>
           
           <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1 text-xs text-neutral-400 font-medium">
             <span className="flex items-center gap-1">
               <Mail className="w-3.5 h-3.5" />
-              asha@carverse.com
+              {`${(score.name || 'user').toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '')}@carverse.com`}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
-              Mumbai Central Branch
+              {score.branch || (userId === 'u3' ? 'Bangalore Branch' : 'Mumbai Central Branch')}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />

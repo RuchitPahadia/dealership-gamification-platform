@@ -5,6 +5,7 @@ import { AdminDashboard } from '../components/dashboard/AdminDashboard';
 import FinanceDashboardPage from './FinanceDashboardPage';
 import DseDashboardPage from './DseDashboardPage';
 import { LogOut } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
 
 export default function DashboardPage() {
   const [userId, setUserId] = useState(localStorage.getItem('dealerxp_user_id') || '');
@@ -39,22 +40,9 @@ export default function DashboardPage() {
     return <LoginForm onLogin={handleLogin} />;
   }
 
-  // 2. If logged in as Admin (u3 Vikram), render AdminDashboard
+  // 2. If logged in as Admin (u3 Vikram), redirect to Admin Console
   if (userId === 'u3') {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-lg text-xs font-bold transition"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-        <AdminDashboard />
-      </div>
-    );
+    return <Navigate to="/admin" replace />;
   }
 
   // 3. For employees, check their role dynamically from user score
