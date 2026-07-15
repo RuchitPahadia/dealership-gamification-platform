@@ -26,7 +26,7 @@ import {
 
 export default function AdminPanelPage() {
   const currentUserId = localStorage.getItem('dealerxp_user_id') || '';
-  const isAdmin = ['u3', '10688', 'SAM814', 'COO'].includes(currentUserId);
+  const isAdmin = currentUserId === 'u3';
 
   const [weights, setWeights] = useState([]);
   const [anomalies, setAnomalies] = useState([]);

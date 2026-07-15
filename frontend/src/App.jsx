@@ -47,7 +47,7 @@ function AppLayout({ children }) {
 
   useEffect(() => {
     const fetchPendingCount = () => {
-      if (['u3', '10688', 'SAM814', 'COO'].includes(userId)) {
+      if (userId === 'u3') {
         getPendingBookings()
           .then(res => {
             if (res && res.bookings) {
@@ -133,8 +133,8 @@ function AppLayout({ children }) {
     );
   }
 
-  const name = userProfile ? userProfile.name : (userId === '10688' ? 'AJEYA GOWDA' : (userId === 'SAM814' ? 'SAMPATH B' : (userId === 'COO' ? 'VIKAS GUPTA' : (userId === 'u3' ? 'Vikram' : (userId === 'u1' ? 'Asha' : (userId === 'u2' ? 'Rahul' : 'Employee'))))));
-  const role = userProfile ? userProfile.role : (['u3', '10688', 'SAM814', 'COO'].includes(userId) ? 'Branch Manager' : (userId === 'u2' ? 'Finance Specialist' : 'Sales DSE'));
+  const name = userProfile ? userProfile.name : (userId === 'u1' ? 'Asha' : (userId === 'u2' ? 'Rahul' : (userId === 'u3' ? 'Vikram' : 'Employee')));
+  const role = userProfile ? userProfile.role : (userId === 'u1' ? 'Sales DSE' : (userId === 'u2' ? 'Finance Specialist' : (userId === 'u3' ? 'Branch Manager' : 'DealerXP')));
   const initials = name.charAt(0).toUpperCase();
   const bg = role.includes("Finance") ? "bg-teal-500/20" : (role.includes("Manager") ? "bg-indigo-500/20" : "bg-brand-primary/20");
   const text = role.includes("Finance") ? "text-teal-600 dark:text-teal-400" : (role.includes("Manager") ? "text-indigo-600 dark:text-indigo-400" : "text-brand-primary");
@@ -164,8 +164,9 @@ function AppLayout({ children }) {
   ];
 
       const filteredNavItems = navItems.filter((item) => {
-  const isAdmin = role.toLowerCase().includes("manager") || role.toLowerCase().includes("admin");
-  const isFinance = role.toLowerCase().includes("finance");
+  // Temporary: until backend user profile is loaded
+  const isAdmin = false;
+  const isFinance = false;
 
   if (isAdmin) {
     return ["/admin", "/analytics"].includes(item.to);

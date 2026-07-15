@@ -108,33 +108,16 @@ class LeaderboardEngine:
         }
 
     def _build_individual_response(self, scoring_events: list[dict[str, Any]]) -> dict[str, Any]:
-        try:
-            from app.data.csv_loader import load_employees
-            df_emp = load_employees()
-            df_emp["id"] = df_emp["id"].astype(str).str.strip()
-            manager_ids = set(
-                df_emp[
-                    df_emp['designation'].str.contains('Manager', case=False, na=False)
-                    | df_emp['role_rights'].str.contains('Manager', case=False, na=False)
-                    | df_emp['role_rights'].str.contains('Admin', case=False, na=False)
-                ]['id']
-            )
-        except Exception:
-            manager_ids = set()
-
         by_user: dict[str, dict[str, Any]] = {}
         for item in scoring_events:
             user_id = str(item.get("user_id", ""))
             if not user_id:
                 continue
             if user_id not in by_user:
-                dept = str(item.get("department", ""))
-                if user_id in manager_ids or user_id == "u3":
-                    dept = "ADMIN"
                 by_user[user_id] = {
                     "userId": user_id,
                     "name": str(item.get("employee_name", user_id)),
-                    "department": dept,
+                    "department": str(item.get("department", "")),
                     "branch": str(item.get("branch", "")),
                     "points": 0,
                     "level": 1,

@@ -4,25 +4,26 @@
 
 DealerXP is a gamified performance and analytics layer built on top of a real-world car dealership's operational pipeline. It sits on top of the existing lead → enquiry → booking → finance → invoice → delivery lifecycle, aggregates thousands of raw events into highly impactful scoring milestones, and surfaces them as XP, streaks, badges, quests, and leaderboards — designed to speed up cycle time and foster cross-department collaboration without rewarding busywork.
 
-Built for the Carverse Mobility Technologies Dealership Gamification Hackathon.
+Built for the Carverse Mobility Technologies Dealership Gamification Gamified Dashboard Hackathon.
 
 ---
 
-## Table of Contents
+## 📖 Table of Contents
 
 - [Repository Structure](#repository-structure)
 - [System Architecture & Integration Status](#system-architecture--integration-status)
 - [Quick Start](#quick-start)
-- [Key Features & Highlights](#key-features--highlights)
-- [Scoring Model & Anti-Gaming Design](#scoring-model--anti-gaming-design)
+- [Core Game Mechanics & Logic](#core-game-mechanics--logic)
+- [Backend Ingestion & Scoring Logic](#backend-ingestion--scoring-logic)
+- [Anti-Gaming Design & Guardrails](#anti-gaming-design--guardrails)
+- [Employee Progression & Rank Tiers](#employee-progression--rank-tiers)
 - [Tech Stack](#tech-stack)
 - [Testing](#testing)
-- [Recent Bug Fixes & Refactoring](#recent-bug-fixes--refactoring)
 - [Team](#team)
 
 ---
 
-## Repository Structure
+## 📂 Repository Structure
 
 ```
 DealerXP/
@@ -42,7 +43,7 @@ DealerXP/
 
 ---
 
-## System Architecture & Integration Status
+## ⚡ System Architecture & Integration Status
 
 DealerXP is **fully integrated and wired together**.
 * **Vite API Proxying**: The frontend uses a local Vite development server proxy (`/api` routes mapped to `http://127.0.0.1:8000`) to query the FastAPI backend directly during execution.
@@ -51,7 +52,7 @@ DealerXP is **fully integrated and wired together**.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Option A — Full Stack (Recommended)
 Launch the entire environment containing the frontend, backend, database, and Redis cache in one command:
@@ -85,47 +86,82 @@ python -m uvicorn app.main:app --port 8000 --reload
 
 ---
 
-## Key Features & Highlights
+## 🎮 Core Game Mechanics & Logic
 
-### 1. Booking Timeline & Race Track
-* A linear **"race track"** visualizes a single booking's journey across 7 stages (Booking Created → Discount Approved → Finance Approved → Invoice Approved → RTO Request → PDI Completed → Delivered).
-* **Branch Managers** can view and approve pending bookings inline, instantly advancing the booking timeline and awarding XP to DSEs.
-* **Adaptive Theme Support**: The Race Track interface features a responsive light theme design that transitions smoothly out of dark mode when switching to light theme.
+DealerXP is designed to model high-performance behaviors using engaging game elements that drive tangible business value.
 
-### 2. Leaderboard Scope Switching
-* Displays real-time organizational performance metrics.
-* **Individual Standing**: Rankings of individual sales executives (DSEs) and finance closer executives.
-* **Branch Standing**: Inter-branch standings comparing location performances. 
-* *Bug Fix*: Resolves state pollution by verifying location datasets, dynamically filtering employee IDs/names from the branch calculations on the backend, and resetting the rendering state in the custom React query hook.
+### 1. Booking Lifecycle "Race Track"
+* Visualizes a single booking's progress across **7 key milestones** (Booking Created → Discount Approved → Finance Approved → Invoice Approved → RTO Request → PDI Completed → Delivered).
+* The timeline is rendered dynamically as a racetrack, featuring a sports car emoji that moves forward to the right as stages complete.
+* Advances in the lifecycle trigger immediate XP rewards for the executing employee.
 
-### 3. Role-Based Navigation
-* **Admin (Vikram)**: Gains exclusive access to the Admin Console, Action Weight Editor, and aggregate Analytics pages.
-* **Sales DSE (Asha)**: Personal workspaces displaying daily quests, active point streaks, earned badges, and personal profile details.
-* **Finance Specialist (Rahul)**: Focused workspace optimized for completing finance milestones.
+### 2. Customer Delight Multiplier (Review Bonus)
+* **Mechanic**: Simulating customer reviews rewards executives for high customer satisfaction.
+* **Star Ratings Mapping**:
+  * ⭐⭐⭐⭐⭐ (5 Stars) $\rightarrow$ **1.05x Multiplier**
+  * ⭐⭐⭐⭐ (4 Stars) $\rightarrow$ **1.03x Multiplier**
+  * ⭐⭐⭐ (3 Stars) $\rightarrow$ **1.01x Multiplier**
+* **Application**: The multiplier is stored on the user's active state. The bonus is automatically applied to boost their **next lifecycle delivery event** (`DELIVERED` action) and then resets. This connects direct customer feedback to employee payouts.
 
-### 4. Admin Console & Analytics
-* **Runtime Catalog Tuning**: Adjust point weights for the 20 core scoring actions inside `shared/action_catalog.json` on the fly without rebooting.
-* **KPI Trackers**: Dashboard summaries displaying key metrics like cycle time and action mix.
-
----
-
-## Scoring Model & Anti-Gaming Design
-
-From over 2,000 raw transactional event signatures in the CSV dump, exactly **20 core actions** are mapped for gamified scoring. 
-
-### Core Gamification Rules
-* **High-value outcomes** (e.g. `DELIVERED`, `ZERO_REWORK_BOOKING_BONUS`) receive high point weights because they translate to external business value.
-* **Process milestones** (e.g. `FINANCE_APPROVED_FIRST_PASS`, `SLA_MET`) reward cycle-time efficiency.
-* **Low-value spammables** (e.g. `BOOKING_NOTE_ADDED`) have low weights and are capped to prevent repetitive farming.
-* **Penalties** (e.g. `REWORK_LOOP_TRIGGERED`, `BOOKING_CANCELLED`) apply negative points to discourage gaming.
-
-### Anti-Gaming Guardrails
-* **Anti-Gaming Caps**: Once an employee triggers a repeatable action too many times, the scoring engine caps their gains and flags a "Capped" visual alert.
-* **Anomaly Detection**: Flags collusion behavior (such as executing relay approval actions without matching lifecycle completions) as anomalies.
+### 3. Relay Collaboration Bonus
+* **Mechanic**: Points are awarded when handoffs between departments are completed quickly.
+* **Incentive**: If a Sales DSE forwards a booking and a Finance Specialist completes the finance approval stage, both receive a **Relay Collaboration Bonus** to encourage alignment.
 
 ---
 
-## Tech Stack
+## ⚙️ Backend Ingestion & Scoring Logic
+
+The backend scoring engine parses and processes real-world operational logs to calculate gamification states.
+
+### 1. Ingestion Pipeline
+* Parses thousands of raw transactional database logs (`z_event_log_may_june_2026.csv`) and matches them with employees (`z_employees.csv`) and locations (`z_locations.csv`).
+* Maps events to exactly **20 core gamified actions** defined in the central configuration repository: `shared/action_catalog.json`.
+
+### 2. Dynamic Point Scaling & Variance Management
+* **The Problem**: Raw accumulated scores in car dealerships suffer from massive variance. Top branches or long-tenured executives have thousands of points, while newcomers remain at zero, leading to low engagement.
+* **The Solution**: An advanced **linear normalization scaling algorithm** in `leaderboard_engine.py` maps raw accumulated scores between **`80 XP` and `520 XP`**. 
+  $$\text{Scaled XP} = 80 + \frac{\text{Raw XP} - \text{Min Raw XP}}{\text{Max Raw XP} - \text{Min Raw XP}} \times 440$$
+* **Outcome**: Compresses score variance while preserving executive rankings. This creates a balanced competitive environment where rank promotions feel achievable.
+
+---
+
+## 🛡️ Anti-Gaming Design & Guardrails
+
+To prevent employees from "gaming" the leaderboard, the backend includes runtime guardrails:
+
+### 1. Rate Capping (Spam Prevention)
+* **The Problem**: Repeatable low-effort actions (e.g., adding arbitrary `BOOKING_NOTE_ADDED` events) can be farmed for infinite XP.
+* **The Guardrail**: High-frequency repeatable actions are rate-limited to **5 additions daily**. Once capped, the engine awards 0 points for subsequent triggers and flags the action as `"CAPPED"` in the UI to guide the employee back to high-impact operational work.
+
+### 2. Collusion Detection
+* **The Problem**: Sales and Finance employees could collude to repeatedly trigger relay actions to farm handoff bonuses without doing real work.
+* **The Guardrail**: The backend maps the transaction chain. A handoff relay bonus is only unlocked if a **real delivery lifecycle stage** is advanced. Logging dummy notes or duplicate approvals without advancing the car delivery lifecycle yields 0 points and triggers collusion warnings.
+
+---
+
+## 🏆 Employee Progression & Rank Tiers
+
+Progression represents an employee's career and skill growth, measured by scaled XP points.
+
+### Rank Tiers (100 XP Brackets)
+Each rank represents a 100-point achievement threshold:
+
+| Rank Badge | Rank Tier | Point Bracket |
+| :---: | :--- | :--- |
+| 🪨 | **Iron** | 0 – 99 XP |
+| 🥉 | **Bronze** | 100 – 199 XP |
+| 🥈 | **Silver** | 200 – 299 XP |
+| 🟡 | **Gold** | 300 – 399 XP |
+| 💎 | **Platinum** | 400 – 499 XP |
+| 💠 | **Diamond** | 500+ XP |
+
+### Integration Cleanliness
+* **Synchronized Calculations**: The 100-point ranking system is mapped consistently across the backend engines, individual leaderboards, branch leaderboards, scorecard components, and lobby Competitive Profiles.
+* **Badges**: Badges scale and transition seamlessly between light and dark modes.
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technologies |
 |---|---|
@@ -137,7 +173,7 @@ From over 2,000 raw transactional event signatures in the CSV dump, exactly **20
 
 ---
 
-## Testing
+## 🧪 Testing
 
 Run the backend test suite covering the scoring model contracts, cap triggers, weight tuning, and collusion anomaly check gates:
 ```bash
@@ -148,18 +184,7 @@ pytest tests/ -v
 
 ---
 
-## Recent Bug Fixes & Refactoring
-
-1. **Dashboard Blank Screen**: Resolved a client-side bundle mapping issue on the main `/dashboard` page to restore seamless dashboard loading.
-2. **Race Track Light Mode**: Redesigned UI classes on the timeline components to properly support white layouts when light mode is selected.
-3. **Leaderboard State Cleanliness**: 
-   * Fixed a hook execution bug in `useLeaderboard.js` that previously caused individual executive standings to pollute the top of the **Branch Standing** list during active scope fetches.
-   * Added backend validation filtering inside `leaderboard_engine.py` to prevent employee names from appearing in aggregated branch metrics.
-4. **Scoring Engine Import Imports**: Fixed Python import namespaces within `scoring_engine.py` so that imports properly resolve relative to the `app` root package structure.
-
----
-
-## Team
+## 👥 Team
 
 Built by a 4-developer team across backend core (auth, ingestion, rule/scoring engine), backend gamification (leaderboard, analytics, admin, notifications), frontend player experience, and admin/DevOps/integration.
 

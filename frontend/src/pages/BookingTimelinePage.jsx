@@ -188,7 +188,7 @@ export default function BookingTimelinePage() {
               This booking request must be confirmed by the Branch Manager before the timeline can proceed.
             </p>
           </div>
-          {['u3', '10688', 'SAM814', 'COO'].includes(currentUserId) && (
+          {currentUserId === 'u3' && (
             <button
               onClick={() => {
                 confirmBooking(bookingId);

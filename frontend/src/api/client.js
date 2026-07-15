@@ -7,8 +7,7 @@ const API_BASE = '/api/v1'; // Routed via Vite proxy to backend
 const defaultState = {
   score: {
     u1: { userId: "u1", name: "Asha", points: 520, streakDays: 5, capsActive: [], role: "Sales DSE", branch: "YELAHANKA" },
-    u2: { userId: "u2", name: "Rahul (Finance)", points: 340, streakDays: 4, capsActive: [], role: "Finance Specialist", branch: "BANASHANKARI" },
-    u3: { userId: "u3", name: "Vikram", points: 500, streakDays: 6, capsActive: [], role: "Branch Manager", branch: "YELAHANKA" }
+    u2: { userId: "u2", name: "Rahul (Finance)", points: 340, streakDays: 4, capsActive: [], role: "Finance Specialist", branch: "BANASHANKARI" }
   },
   badges: {
     u1: {
@@ -299,7 +298,7 @@ export async function getUserScore(userId) {
             points: finalPoints,
             streakDays: 5,
             capsActive: state.score[userId]?.capsActive || [],
-            role: found.department.toLowerCase().includes('admin') ? 'Branch Manager' : (found.department.toLowerCase().includes('finance') ? 'Finance Specialist' : 'Sales DSE'),
+            role: found.department.toLowerCase().includes('finance') ? 'Finance Specialist' : 'Sales DSE',
             branch: found.branch || 'YELAHANKA',
             badge: getTierBadge(finalPoints),
             delightMultiplier: state.score[userId]?.delightMultiplier || 1.0
@@ -312,17 +311,7 @@ export async function getUserScore(userId) {
   }
   await delay(100);
   const state = loadState();
-  const isManager = userId === 'u3' || userId === '10688' || userId === 'SAM814' || userId === 'COO';
-  const profile = state.score[userId] || { 
-    userId, 
-    name: userId === '10688' ? 'AJEYA GOWDA' : (userId === 'SAM814' ? 'SAMPATH B' : (userId === 'COO' ? 'VIKAS GUPTA' : (userId === 'u3' ? 'Vikram' : (userId === 'u2' ? 'Rahul' : 'Asha')))),
-    points: isManager ? 500 : (userId === 'u2' ? 340 : 520), 
-    streakDays: isManager ? 6 : (userId === 'u2' ? 4 : 5), 
-    capsActive: [], 
-    role: isManager ? 'Branch Manager' : (userId === 'u2' ? 'Finance Specialist' : 'Sales DSE'), 
-    branch: userId === 'u2' ? 'BANASHANKARI' : 'YELAHANKA', 
-    delightMultiplier: 1.0 
-  };
+  const profile = state.score[userId] || { userId, points: 0, streakDays: 0, capsActive: [], role: userId === 'u2' ? 'Finance Specialist' : 'Sales DSE', branch: userId === 'u2' ? 'BANASHANKARI' : 'YELAHANKA', delightMultiplier: 1.0 };
   return {
     ...profile,
     badge: getTierBadge(profile.points)
