@@ -37,6 +37,7 @@ class GamificationEngine:
         self._user_badges: dict[str, set[str]] = defaultdict(set)
         self._last_scoring_day: dict[str, date] = {}
         self._streak_days: dict[str, int] = defaultdict(int)
+        self._delight_multipliers: dict[str, float] = defaultdict(lambda: 1.0)
 
     def process_event(
         self,
@@ -55,15 +56,49 @@ class GamificationEngine:
         reason: str | None = None
         points = int(self.catalog_service.get_weight(action))
 
+        # 1. Process Customer Review Event
+        if action == "CUSTOMER_REVIEW_SUBMITTED":
+            rating = event.get("rating")
+            if rating is None:
+                rating = event.get("score")
+            
+            if rating is not None:
+                try:
+                    rating_val = float(rating)
+                    if rating_val >= 5.0 or rating_val >= 90:
+                        self._delight_multipliers[user_id] = 1.05
+                    elif rating_val >= 4.0 or rating_val >= 80:
+                        self._delight_multipliers[user_id] = 1.03
+                    elif rating_val >= 3.0 or rating_val >= 70:
+                        self._delight_multipliers[user_id] = 1.01
+                    else:
+                        self._delight_multipliers[user_id] = 1.0
+                except ValueError:
+                    self._delight_multipliers[user_id] = 1.05
+            else:
+                self._delight_multipliers[user_id] = 1.05
+            reason = f"Delight multiplier registered: {self._delight_multipliers[user_id]}x"
+
+        # 2. Process Mass Update Rate Caps
         if self._is_mass_update_capped(event, recent_events):
             capped = True
             points = 0
             reason = "Mass-update rate cap triggered"
 
+        # 3. Process Collusion Gate
         if action == COLLUSION_BONUS_ACTION and not self._has_real_delivery(booking_events):
             capped = True
             points = 0
             reason = "Collusion-bonus gated until real DELIVERED event"
+
+        # 4. Apply Customer Delight Multiplier on next DELIVERED sale
+        if action == "DELIVERED" and not capped:
+            mult = self._delight_multipliers[user_id]
+            if mult > 1.0:
+                old_points = points
+                points = int(points * mult)
+                reason = f"Customer Delight Multiplier applied: {mult}x (+{points - old_points} RP)"
+                self._delight_multipliers[user_id] = 1.0
 
         if points != 0:
             self._user_xp[user_id] += points
