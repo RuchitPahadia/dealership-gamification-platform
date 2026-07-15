@@ -4,6 +4,42 @@
 
 const STORAGE_KEY_PREFIX = 'dealerxp_';
 const API_BASE = '/api/v1'; // Routed via Vite proxy to backend
+function updateQuestProgress(action, count, targetUserId, state) {
+  state.quests = state.quests.map(q => {
+    let matches = false;
+    if (action === "RELAY_BONUS" && q.title.toLowerCase().includes("relay")) {
+      matches = true;
+    } else if (action === "BOOKING_NOTE_ADDED" && q.title.toLowerCase().includes("comment")) {
+      matches = true;
+    } else if (action === "FINANCE_APPROVED" && q.title.toLowerCase().includes("finance")) {
+      matches = true;
+    } else if (action === "RTO_REQUEST" && q.title.toLowerCase().includes("rto")) {
+      matches = true;
+    } else if (action === "DELIVERED" && q.title.toLowerCase().includes("deliver")) {
+      matches = true;
+    }
+
+    if (matches && q.progress < q.target) {
+      const oldProgress = q.progress;
+      const newProgress = Math.min(q.target, q.progress + count);
+      const completed = newProgress === q.target && oldProgress < q.target;
+      if (completed) {
+        if (state.score[targetUserId]) {
+          state.score[targetUserId].points += q.points;
+          state.leaderboard.individual = state.leaderboard.individual.map(row => {
+            if (row.name === state.score[targetUserId].name) {
+              return { ...row, points: state.score[targetUserId].points };
+            }
+            return row;
+          });
+        }
+      }
+      return { ...q, progress: newProgress };
+    }
+    return q;
+  });
+}
+
 const defaultState = {
   score: {
     u1: { userId: "u1", name: "Asha", points: 520, streakDays: 5, capsActive: [], role: "Sales DSE", branch: "YELAHANKA" },
@@ -38,7 +74,8 @@ const defaultState = {
     { id: "q1", title: "Clear 3 finance approvals", progress: 1, target: 3, points: 100, department: "Finance" },
     { id: "q2", title: "Upload 2 RTO requests", progress: 0, target: 2, points: 50, department: "DSE" },
     { id: "q3", title: "Add 5 booking comments", progress: 2, target: 5, points: 20, department: "Any" },
-    { id: "q4", title: "Deliver a booking today", progress: 0, target: 1, points: 200, department: "DSE" }
+    { id: "q4", title: "Deliver a booking today", progress: 0, target: 1, points: 200, department: "DSE" },
+    { id: "q5", title: "Achieve 1 Clean Relay Bonus", progress: 0, target: 1, points: 160, department: "Any" }
   ],
   duest: {
     id: "d1",
@@ -190,19 +227,16 @@ export function triggerRelayBonus() {
     if (row.name === "Rahul (Finance)") return { ...row, points: state.score.u2.points };
     return row;
   });
+
+  // Update quest progress
+  updateQuestProgress("RELAY_BONUS", 1, "u1", state);
+  updateQuestProgress("RELAY_BONUS", 1, "u2", state);
+  updateQuestProgress("FINANCE_APPROVED", 1, "u2", state);
   
   // Sort individual leaderboard
   state.leaderboard.individual.sort((a, b) => b.points - a.points);
   state.leaderboard.individual.forEach((row, idx) => {
     row.rank = idx + 1;
-  });
-
-  // Update quest progress
-  state.quests = state.quests.map(q => {
-    if (q.id === "q1") {
-      return { ...q, progress: Math.min(q.target, q.progress + 1) };
-    }
-    return q;
   });
 
   // Add the RELAY_BONUS event to timeline
@@ -233,17 +267,18 @@ export function triggerNoteSpam() {
     user.points += 20;
     
     // Update quest progress
-    state.quests = state.quests.map(q => {
-      if (q.id === "q3") {
-        return { ...q, progress: q.progress + 1 };
-      }
-      return q;
-    });
+    updateQuestProgress("BOOKING_NOTE_ADDED", 1, "u1", state);
 
     // Update leaderboard points
     state.leaderboard.individual = state.leaderboard.individual.map(row => {
       if (row.name === "Asha") return { ...row, points: user.points };
       return row;
+    });
+
+    // Sort individual leaderboard
+    state.leaderboard.individual.sort((a, b) => b.points - a.points);
+    state.leaderboard.individual.forEach((row, idx) => {
+      row.rank = idx + 1;
     });
   } else {
     // Cap is reached! Point count does not increase, and we mark cap as active
@@ -318,6 +353,36 @@ export async function getUserScore(userId) {
   };
 }
 
+function getDynamicRankBadges(points) {
+  const earned = [];
+  const inProgress = [];
+  
+  const rankTiers = [
+    { threshold: 0, prev: 0, id: "rank-iron", name: "Iron Rank", icon: "Trophy" },
+    { threshold: 100, prev: 0, id: "rank-bronze", name: "Bronze Rank", icon: "Award" },
+    { threshold: 200, prev: 100, id: "rank-silver", name: "Silver Rank", icon: "Award" },
+    { threshold: 300, prev: 200, id: "rank-gold", name: "Gold Rank", icon: "Trophy" },
+    { threshold: 400, prev: 300, id: "rank-platinum", name: "Platinum Rank", icon: "Trophy" },
+    { threshold: 500, prev: 400, id: "rank-diamond", name: "Diamond Rank", icon: "Trophy" }
+  ];
+
+  rankTiers.forEach(tier => {
+    if (points >= tier.threshold) {
+      earned.push({ id: tier.id, name: tier.name, icon: tier.icon });
+    } else {
+      const progress = (points - tier.prev) / (tier.threshold - tier.prev);
+      inProgress.push({
+        id: tier.id,
+        name: tier.name,
+        icon: tier.icon,
+        progress: Math.max(0, Math.min(0.99, progress))
+      });
+    }
+  });
+
+  return { earned, inProgress };
+}
+
 export async function getUserBadges(userId) {
   try {
     const res = await fetch(`${API_BASE}/leaderboard?scope=individual`);
@@ -326,13 +391,21 @@ export async function getUserBadges(userId) {
       if (data.success && Array.isArray(data.leaderboard)) {
         const found = data.leaderboard.find(item => isCurrentUser(item.name, item.userId));
         if (found) {
-          const earned = [];
+          const state = loadState();
+          const localPoints = state.score[userId]?.points || 0;
+          const defaultPoints = defaultState.score[userId]?.points || 0;
+          const delta = localPoints - defaultPoints;
+          const finalPoints = found.points + delta;
+
+          const rankBadges = getDynamicRankBadges(finalPoints);
+          const earned = [...rankBadges.earned];
           if (found.badge && found.badge !== "Bronze") {
             earned.push({ id: found.badge.toLowerCase().replace(/\s+/g, '-'), name: found.badge, icon: "Award" });
           }
           return {
             earned,
             inProgress: [
+              ...rankBadges.inProgress,
               { id: "b2", name: "Team Player", progress: 0.6 }
             ]
           };
@@ -344,7 +417,17 @@ export async function getUserBadges(userId) {
   }
   await delay(100);
   const state = loadState();
-  return state.badges[userId] || { earned: [], inProgress: [] };
+  const userPoints = state.score[userId]?.points || 0;
+  const rankBadges = getDynamicRankBadges(userPoints);
+  
+  const baseBadges = state.badges[userId] || { earned: [], inProgress: [] };
+  const filteredBaseEarned = baseBadges.earned.filter(b => !b.id.startsWith("rank-"));
+  const filteredBaseInProgress = baseBadges.inProgress.filter(b => !b.id.startsWith("rank-"));
+
+  return {
+    earned: [...rankBadges.earned, ...filteredBaseEarned],
+    inProgress: [...rankBadges.inProgress, ...filteredBaseInProgress]
+  };
 }
 
 export async function getLeaderboard(scope = 'individual') {
@@ -725,11 +808,14 @@ export async function progressBookingStage(bookingId, stageKey) {
         action: "DELIVERED",
         points: points - oldPoints,
         timestamp: new Date().toISOString(),
-        message: `Customer Delight Multiplier applied: ${mult}x (+${points - oldPoints} RP)`
+        message: `Customer Delight Multiplier applied: ${mult}x (+${points - oldPoints} XP)`
       });
     }
 
     state.score[targetUser].points += points;
+
+    // Update quest progress
+    updateQuestProgress(stageKey, 1, targetUser, state);
 
     state.leaderboard.individual = state.leaderboard.individual.map(row => {
       if (row.name === state.score[targetUser].name) {

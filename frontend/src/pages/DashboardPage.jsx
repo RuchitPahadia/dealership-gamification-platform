@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
     // Game News Feed (Patch Notes & Announcements)
     const newsFeed = [
-      { id: 1, tag: 'Event', title: 'Relay Collaboration Bonus Active!', desc: 'Team up with your department counterpart on active bookings to claim +50 RP relay bonuses.', time: 'Active Now' },
+      { id: 1, tag: 'Event', title: 'Relay Collaboration Bonus Active!', desc: 'Team up with your department counterpart on active bookings to claim +50 XP relay bonuses.', time: 'Active Now' },
       { id: 2, tag: 'Patch Notes', title: 'Season 1 Ranked Patch v1.0.4', desc: 'Upgraded division rivals ladders, improved dark mode consistency, and aligned backend CSV engine imports.', time: '2h ago' },
       { id: 3, tag: 'Tip', title: 'Avoid Note spam caps', desc: 'Repeatable actions like booking notes are capped at 5 additions daily to focus points on major approvals.', time: '1d ago' }
     ];
@@ -125,10 +125,10 @@ export default function DashboardPage() {
                     <span className="text-4xl">{rank.emblem}</span>
                     <div>
                       <span className={`text-sm font-black uppercase tracking-wider ${rank.color}`}>
-                        {rank.tier} {rank.division}
+                        {rank.tier}
                       </span>
                       <h3 className="text-2xl font-black text-neutral-900 dark:text-white leading-none mt-1">
-                        {score.points.toLocaleString()} <span className="text-xs text-teal-600 dark:text-teal-400 font-extrabold">RP</span>
+                        {score.points.toLocaleString()} <span className="text-xs text-teal-600 dark:text-teal-400 font-extrabold">XP</span>
                       </h3>
                     </div>
                   </div>

@@ -113,10 +113,10 @@ export function ScoreCard({ score, department }) {
 
   // Generate dynamic division rivals based on player points
   const rivals = [
-    { rank: 1, name: 'SAMPATH B', points: Math.max(score.points + 120, 1360), tier: 'Platinum I', isMe: false },
-    { rank: 2, name: score.name, points: score.points, tier: `${rank.tier} ${rank.division}`, isMe: true },
-    { rank: 3, name: 'RANJITH KUMAR S', points: Math.max(score.points - 60, 1180), tier: `${rank.tier} ${rank.division}`, isMe: false },
-    { rank: 4, name: 'VINAY PRASAD', points: Math.max(score.points - 250, 990), tier: 'Gold I', isMe: false }
+    { rank: 1, name: 'SAMPATH B', points: Math.max(score.points + 120, 1360), tier: 'Platinum', isMe: false },
+    { rank: 2, name: score.name, points: score.points, tier: rank.tier, isMe: true },
+    { rank: 3, name: 'RANJITH KUMAR S', points: Math.max(score.points - 60, 1180), tier: rank.tier, isMe: false },
+    { rank: 4, name: 'VINAY PRASAD', points: Math.max(score.points - 250, 990), tier: 'Gold', isMe: false }
   ].sort((a, b) => b.points - a.points);
 
   // Styled mock match log history
@@ -168,7 +168,7 @@ export function ScoreCard({ score, department }) {
                   Competitive Division
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded border ${rank.badgeBg} font-bold`}>
-                  {rank.tier} {rank.division}
+                  {rank.tier}
                 </span>
               </div>
               <h2 className="text-xl font-black tracking-tight text-neutral-900 dark:text-white mt-1">
@@ -197,7 +197,7 @@ export function ScoreCard({ score, department }) {
                   {score.points.toLocaleString()}
                 </motion.span>
               </AnimatePresence>
-              <span className="text-xs text-teal-650 dark:text-teal-400 font-bold">RP</span>
+              <span className="text-xs text-teal-650 dark:text-teal-400 font-bold">XP</span>
             </div>
           </div>
         </div>
@@ -219,9 +219,9 @@ export function ScoreCard({ score, department }) {
             </motion.div>
           </div>
           <div className="flex justify-between items-center text-[10px] text-neutral-400 dark:text-slate-500 font-bold mt-2 uppercase tracking-wide">
-            <span>{rank.tier} {rank.division}</span>
+            <span>{rank.tier}</span>
             <span className="text-neutral-500 dark:text-slate-400">
-              {rank.pointsToNext > 0 ? `${rank.pointsToNext} RP to ${rank.nextTier}` : 'Max Tier Achieved'}
+              {rank.pointsToNext > 0 ? `${rank.pointsToNext} XP to ${rank.nextTier}` : 'Max Tier Achieved'}
             </span>
           </div>
         </div>
@@ -258,7 +258,7 @@ export function ScoreCard({ score, department }) {
               className="grid grid-cols-2 gap-4"
             >
               {[
-                { label: 'AP (Action Points)', value: `${score.points} RP`, icon: <Zap className="w-4 h-4 text-yellow-500" /> },
+                { label: 'AP (Action Points)', value: `${score.points} XP`, icon: <Zap className="w-4 h-4 text-yellow-500" /> },
                 { label: 'SLA Haste Rate', value: '94% (S)', icon: <Activity className="w-4 h-4 text-emerald-500" /> },
                 { label: 'Relay Sync Rate', value: '88% (A+)', icon: <Swords className="w-4 h-4 text-blue-500" /> },
                 { label: 'Zero Rework Combo', value: '5-Win Combo', icon: <Flame className="w-4 h-4 text-orange-650" /> }
@@ -303,7 +303,7 @@ export function ScoreCard({ score, department }) {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-semibold">{rival.tier}</span>
-                    <span className="font-extrabold font-numeric text-neutral-800 dark:text-white">{rival.points} RP</span>
+                    <span className="font-extrabold font-numeric text-neutral-800 dark:text-white">{rival.points} XP</span>
                   </div>
                 </div>
               ))}
@@ -338,7 +338,7 @@ export function ScoreCard({ score, department }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`font-extrabold font-numeric text-sm ${match.xp > 0 ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-450'}`}>
-                      {match.xp > 0 ? `+${match.xp}` : match.xp} RP
+                      {match.xp > 0 ? `+${match.xp}` : match.xp} XP
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 text-neutral-400 dark:text-slate-500" />
                   </div>
@@ -419,7 +419,7 @@ export function ScoreCard({ score, department }) {
                   <div className="flex justify-between items-center text-sm font-black">
                     <span className="text-neutral-800 dark:text-white">Final Total</span>
                     <span className={`font-numeric ${selectedBreakdown.final > 0 ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-450'}`}>
-                      {selectedBreakdown.final > 0 ? `+${selectedBreakdown.final}` : selectedBreakdown.final} RP
+                      {selectedBreakdown.final > 0 ? `+${selectedBreakdown.final}` : selectedBreakdown.final} XP
                     </span>
                   </div>
                 </div>

@@ -241,7 +241,7 @@ export default function AdminPanelPage() {
                     {item.action.replace(/_/g, ' ')}
                   </h4>
                   <div className="text-xs text-neutral-500 dark:text-slate-400">
-                    Employee: <strong className="text-neutral-850 dark:text-white">{item.employeeName}</strong> • Stake: <strong className="text-teal-650 dark:text-teal-400">+{item.points} RP</strong>
+                    Employee: <strong className="text-neutral-850 dark:text-white">{item.employeeName}</strong> • Stake: <strong className="text-teal-650 dark:text-teal-400">+{item.points} XP</strong>
                   </div>
                 </div>
 
@@ -312,7 +312,7 @@ export default function AdminPanelPage() {
                       onChange={(e) => handleWeightChange(idx, e.target.value)}
                       className="w-20 text-center font-bold px-2 py-1 bg-neutral-50 dark:bg-slate-950 border border-neutral-200 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
-                    <span className="text-xs font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-widest">RP</span>
+                    <span className="text-xs font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-widest">XP</span>
                   </div>
                 </div>
               ))}

@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-neutral-400 dark:text-slate-550 uppercase tracking-widest block">Rating Score</span>
                   <span className="text-2xl font-black text-neutral-900 dark:text-white font-numeric">
-                    {myRow.points.toLocaleString()} <span className="text-xs text-teal-600 dark:text-teal-400 font-extrabold">RP</span>
+                    {myRow.points.toLocaleString()} <span className="text-xs text-teal-600 dark:text-teal-400 font-extrabold">XP</span>
                   </span>
                 </div>
               </div>

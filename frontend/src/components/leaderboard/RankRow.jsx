@@ -44,11 +44,9 @@ export function RankRow({ row, scope }) {
   return (
     <tr 
       className={`transition-all duration-150 border-b border-neutral-100 dark:border-slate-800/60 ${rankStyle.borderClass} ${
-        isMe 
-          ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-l-4 border-l-brand-primary font-semibold' 
-          : isTop3 
-            ? rankStyle.bgClass 
-            : 'hover:bg-neutral-50 dark:hover:bg-slate-950/20'
+        isTop3 
+          ? rankStyle.bgClass 
+          : 'hover:bg-neutral-50 dark:hover:bg-slate-950/20'
       }`}
     >
       <td className="px-6 py-4 whitespace-nowrap text-sm font-numeric">
@@ -67,11 +65,6 @@ export function RankRow({ row, scope }) {
               {row.badge}
             </span>
           )}
-          {isMe && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-brand-primary text-white rounded font-bold uppercase tracking-wider">
-              You
-            </span>
-          )}
         </div>
       </td>
       {scope === 'individual' && (
@@ -81,7 +74,7 @@ export function RankRow({ row, scope }) {
       )}
       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold font-numeric text-right text-neutral-900 dark:text-white">
         <span className="text-xp-gold">{row.points.toLocaleString()}</span>
-        <span className="text-xs text-neutral-400 dark:text-slate-500 font-medium ml-1">RP</span>
+        <span className="text-xs text-neutral-400 dark:text-slate-500 font-medium ml-1">XP</span>
       </td>
     </tr>
   );

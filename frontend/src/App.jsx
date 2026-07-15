@@ -20,14 +20,11 @@ import {
   UserCheck, 
   Users2, 
   Command,
-  Zap,
-  RotateCcw,
-  Sparkles,
   Sun,
   Moon,
   BarChart3
 } from 'lucide-react';
-import { triggerRelayBonus, triggerNoteSpam, resetMockState, getPendingBookings, getUserScore, triggerCustomerReview } from './api/client';
+import { getPendingBookings, getUserScore } from './api/client';
 
 import { LoginForm } from './components/dashboard/LoginForm';
 
@@ -108,10 +105,7 @@ function AppLayout({ children }) {
     localStorage.setItem('dealerxp_theme', nextTheme);
   };
 
-  const handleReset = () => {
-    resetMockState();
-    window.dispatchEvent(new CustomEvent('dealerxp_update'));
-  };
+
 
  const handleLogin = (userId) => {
     localStorage.setItem("dealerxp_user_id", userId);
@@ -290,56 +284,7 @@ function AppLayout({ children }) {
         </main>
       </div>
 
-      {/* Persistent Floating Demo Control Center */}
-      <div className="fixed bottom-0 left-0 right-0 md:left-64 bg-slate-950/90 border-t border-slate-800 p-4 backdrop-blur shadow-2xl z-40 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-teal-400" />
-          <div>
-            <h4 className="text-xs font-extrabold text-white uppercase tracking-wider">
-              DealerXP Demo Controller
-            </h4>
-            <p className="text-[10px] text-slate-500">
-              Triggers simulated API updates to demonstrate key moments from any page.
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={triggerRelayBonus}
-            className="px-3.5 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-teal-500/20 transition-all duration-150 flex items-center gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Simulate Finance Approval (Relay Bonus)
-          </button>
-          
-          <button
-            type="button"
-            onClick={triggerNoteSpam}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-slate-700 transition-all duration-150"
-          >
-            ✍️ Add Note (Cap Firing)
-          </button>
-
-          <button
-            type="button"
-            onClick={triggerCustomerReview}
-            className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-amber-500/20 transition-all duration-150 flex items-center gap-1"
-          >
-            ⭐ Simulate 5★ Review (Delight Multiplier)
-          </button>
-
-          <button
-            type="button"
-            onClick={handleReset}
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 transition-all duration-150"
-            title="Reset Demo State"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
 
     </div>
   );

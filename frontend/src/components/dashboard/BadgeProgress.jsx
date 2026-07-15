@@ -17,7 +17,13 @@ const ACHIEVEMENT_DETAILS = {
   "dealership-hero": { name: "Dealership Hero", desc: "Reopened or completed 10 separate lifecycle deliveries.", req: "Deliver 10 cars." },
   "flawless-execution": { name: "Flawless Execution", desc: "Delivered a customer vehicle with zero rework loop triggers throughout its entire workflow.", req: "Complete a zero-rework delivery." },
   "anti-gaming-guardian": { name: "Anti-Gaming Guardian", desc: "Completed a full work shift without triggering any daily scoring caps or rate limit rules.", req: "Submit 50 actions without hitting limits." },
-  "master-collaborator": { name: "Master Collaborator", desc: "Achieved double relay bonuses with both DSE and Finance counterparts within one day.", req: "Trigger 2 relay bonuses within 24 hours." }
+  "master-collaborator": { name: "Master Collaborator", desc: "Achieved double relay bonuses with both DSE and Finance counterparts within one day.", req: "Trigger 2 relay bonuses within 24 hours." },
+  "rank-iron": { name: "Iron Rank", desc: "Achieved the Iron rank by participating in the dealership operational pipeline.", req: "Reach 0+ XP." },
+  "rank-bronze": { name: "Bronze Rank", desc: "Successfully completed Bronze tier by accumulating points.", req: "Reach 100+ XP." },
+  "rank-silver": { name: "Silver Rank", desc: "Successfully completed Silver tier by accumulating points.", req: "Reach 200+ XP." },
+  "rank-gold": { name: "Gold Rank", desc: "Successfully completed Gold tier by accumulating points.", req: "Reach 300+ XP." },
+  "rank-platinum": { name: "Platinum Rank", desc: "Successfully completed Platinum tier by accumulating points.", req: "Reach 400+ XP." },
+  "rank-diamond": { name: "Diamond Rank", desc: "Successfully completed Diamond tier by accumulating points.", req: "Reach 500+ XP." }
 };
 
 export function BadgeProgress({ badge, isEarned }) {

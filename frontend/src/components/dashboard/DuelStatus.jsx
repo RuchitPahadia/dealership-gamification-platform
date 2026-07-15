@@ -2,6 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Swords, Trophy, Sparkles, TrendingUp, AlertCircle, Zap } from 'lucide-react';
 
+// Helper to format points into an easily comparable numeric power metric
+function formatPower(points) {
+  if (points >= 1000) {
+    return `${(points / 1000).toFixed(1)}K Power`;
+  }
+  return `${points} Power`;
+}
+
 export function DuelStatus({ duel }) {
   if (!duel) return null;
 
@@ -57,7 +65,7 @@ export function DuelStatus({ duel }) {
           </div>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="text-2xl font-black font-numeric text-teal-650 dark:text-teal-405 tracking-tight">{duel.dsePoints}</span>
-            <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-bold">RP</span>
+            <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-bold">XP</span>
           </div>
         </div>
 
@@ -85,7 +93,7 @@ export function DuelStatus({ duel }) {
           </div>
           <div className="mt-2 flex items-baseline justify-end gap-1">
             <span className="text-2xl font-black font-numeric text-orange-600 dark:text-orange-400 tracking-tight">{duel.financePoints}</span>
-            <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-bold">RP</span>
+            <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-bold">XP</span>
           </div>
         </div>
 
@@ -101,7 +109,7 @@ export function DuelStatus({ duel }) {
               <span className="w-2 h-2 rounded-full bg-teal-400" />
               <span>DSE Power Level</span>
             </span>
-            <span className="text-teal-600 dark:text-teal-400 font-numeric">{Math.round(dsePercentage)}%</span>
+            <span className="text-teal-650 dark:text-teal-405 font-numeric">{formatPower(duel.dsePoints)}</span>
           </div>
           <div className="w-full bg-neutral-100 dark:bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-neutral-200 dark:border-slate-850 p-0.5 shadow-inner">
             <motion.div 
@@ -120,7 +128,7 @@ export function DuelStatus({ duel }) {
               <span className="w-2 h-2 rounded-full bg-orange-400" />
               <span>Finance Power Level</span>
             </span>
-            <span className="text-orange-600 dark:text-orange-400 font-numeric">{Math.round(financePercentage)}%</span>
+            <span className="text-orange-650 dark:text-orange-405 font-numeric">{formatPower(duel.financePoints)}</span>
           </div>
           <div className="w-full bg-neutral-100 dark:bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-neutral-200 dark:border-slate-855 p-0.5 shadow-inner">
             <motion.div 
