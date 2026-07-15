@@ -9,12 +9,15 @@ export default function QuestPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-        <h1 className="text-2xl font-bold font-heading text-neutral-900 flex items-center gap-2">
-          <Target className="w-6 h-6 text-brand-primary" />
-          <span>Daily Quests</span>
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">Complete your daily milestones to earn extra XP and unlock badge progress.</p>
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-black font-heading text-white flex items-center gap-2">
+            <Target className="w-6 h-6 text-brand-primary animate-pulse" />
+            <span>Daily Quests & Bounties</span>
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">Complete your daily milestones to earn extra XP and unlock badge progress.</p>
+        </div>
       </div>
 
       {loading ? (
@@ -34,34 +37,35 @@ export default function QuestPage() {
           </div>
           
           {/* Side stats card */}
-          <div className="bg-white rounded-xl border border-neutral-100 p-6 shadow-sm h-fit space-y-4">
-            <h3 className="font-heading text-lg font-bold text-neutral-950 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-success-green" />
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-2xl h-fit space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
+            <h3 className="font-heading text-lg font-bold text-white flex items-center gap-2 relative z-10">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <span>Quest Summary</span>
             </h3>
             
-            <div className="space-y-3">
+            <div className="space-y-3 relative z-10">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-neutral-500">Total Quests</span>
-                <span className="font-bold text-neutral-800">{data.quests.length}</span>
+                <span className="text-slate-400">Total Quests</span>
+                <span className="font-bold text-white">{data.quests.length}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-neutral-500">Completed Quests</span>
-                <span className="font-bold text-success-green">
+                <span className="text-slate-400">Completed Quests</span>
+                <span className="font-bold text-emerald-400">
                   {data.quests.filter(q => q.progress >= q.target).length}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-neutral-500">XP Potential</span>
-                <span className="font-bold text-xp-gold">
+                <span className="text-slate-400">XP Potential</span>
+                <span className="font-bold text-teal-400">
                   {data.quests.reduce((acc, q) => acc + q.points, 0)} XP
                 </span>
               </div>
             </div>
             
-            <div className="h-px bg-neutral-100" />
+            <div className="h-px bg-slate-800 relative z-10" />
             
-            <div className="flex gap-2 text-xs text-neutral-400">
+            <div className="flex gap-2 text-xs text-slate-500 relative z-10">
               <HelpCircle className="w-4 h-4 shrink-0" />
               <span>Quests reset automatically every 24 hours. Points are credited immediately upon completion.</span>
             </div>

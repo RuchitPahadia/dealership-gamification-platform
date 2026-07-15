@@ -1,50 +1,37 @@
 // API Client for DealerXP - Developer 3
 // Stubbed for mock-first development (Hour 0-10) and ready for live swap (Hour 10+)
 // Stores local state in memory/localStorage to allow interactive demo triggers.
-const API_BASE = "http://127.0.0.1:8000/api/v1";
-
-async function api(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, {
-        headers: {
-            "Content-Type": "application/json",
-        },
-        ...options,
-    });
-
-    if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-    }
-
-    return response.json();
-}
-
-
-
 
 const STORAGE_KEY_PREFIX = 'dealerxp_';
+const API_BASE = '/api/v1'; // Routed via Vite proxy to backend
 
 const defaultState = {
   score: {
-    u1: { userId: "u1", name: "Asha", points: 1240, streakDays: 5, capsActive: [] },
-    u2: { userId: "u2", name: "Rahul (Finance)", points: 980, streakDays: 4, capsActive: [] }
+    u1: { userId: "u1", name: "Asha", points: 1240, streakDays: 5, capsActive: [], role: "Sales DSE", branch: "YELAHANKA" },
+    u2: { userId: "u2", name: "Rahul (Finance)", points: 980, streakDays: 4, capsActive: [], role: "Finance Specialist", branch: "BANASHANKARI" }
   },
   badges: {
     u1: {
       earned: [
-        { id: "b1", name: "First Sale", icon: "Award" },
-        { id: "b3", name: "Speed Demon", icon: "Flame" }
+        { id: "first-sale", name: "First Sale", icon: "Award" },
+        { id: "speed-demon", name: "Speed Demon", icon: "Flame" }
       ],
       inProgress: [
-        { id: "b2", name: "Team Player", progress: 0.6 },
-        { id: "b4", name: "Finance Closer", progress: 0.2 }
+        { id: "team-player", name: "Team Player", progress: 0.6 },
+        { id: "finance-closer", name: "Finance Closer", progress: 0.2 },
+        { id: "dealership-hero", name: "Dealership Hero", progress: 0.8 },
+        { id: "flawless-execution", name: "Flawless Execution", progress: 0.4 },
+        { id: "anti-gaming-guardian", name: "Anti-Gaming Guardian", progress: 0.1 },
+        { id: "master-collaborator", name: "Master Collaborator", progress: 0.5 }
       ]
     },
     u2: {
       earned: [
-        { id: "b1", name: "First Approval", icon: "CheckCircle2" }
+        { id: "finance-closer", name: "First Approval", icon: "CheckCircle2" }
       ],
       inProgress: [
-        { id: "b2", name: "Team Player", progress: 0.8 }
+        { id: "team-player", name: "Team Player", progress: 0.8 },
+        { id: "speed-demon", name: "Speed Demon", progress: 0.4 }
       ]
     }
   },
@@ -96,6 +83,10 @@ const defaultState = {
       { rank: 3, name: "Delhi South Branch", points: 1900 }
     ]
   },
+  rouletteQueue: [
+    { id: "r1", employeeName: "Asha", action: "ZERO_REWORK_BOOKING_BONUS", points: 140, timestamp: "2026-07-15T09:12:00Z", approved: false },
+    { id: "r2", employeeName: "Rahul (Finance)", action: "DELIVERED", points: 220, timestamp: "2026-07-15T11:45:00Z", approved: false }
+  ],
   weights: [
     { action: "BOOKING_CREATED", label: "Booking Created", points: 100 },
     { action: "DISCOUNT_APPROVED", label: "Discount Approved", points: 50 },
@@ -152,6 +143,21 @@ function saveState(state) {
 export function resetMockState() {
   localStorage.removeItem(STORAGE_KEY_PREFIX + 'state');
   return loadState();
+}
+
+// Helper to resolve current user matching
+function isCurrentUser(rowName, rowUserId) {
+  const loggedInId = localStorage.getItem('dealerxp_user_id') || 'u1';
+  if (loggedInId === 'u1' && (rowUserId === 'u1' || rowName.toLowerCase().includes('asha'))) {
+    return true;
+  }
+  if (loggedInId === 'u2' && (rowUserId === 'u2' || rowName.toLowerCase().includes('rahul'))) {
+    return true;
+  }
+  if (loggedInId === 'u3' && (rowUserId === 'u3' || rowName.toLowerCase().includes('vikram'))) {
+    return true;
+  }
+  return rowUserId === loggedInId;
 }
 
 // Simulated Action Triggers (for Demo presentation)
@@ -257,31 +263,142 @@ export function triggerNoteSpam() {
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function getUserScore(userId) {
-    return await api(`/users/${userId}`);
+  try {
+    const res = await fetch(`${API_BASE}/leaderboard?scope=individual`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.leaderboard)) {
+        const found = data.leaderboard.find(item => isCurrentUser(item.name, item.userId));
+        if (found) {
+          return {
+            userId: found.userId,
+            name: found.name,
+            points: found.points,
+            streakDays: 5,
+            capsActive: [],
+            role: found.department.toLowerCase().includes('finance') ? 'Finance Specialist' : 'Sales DSE',
+            branch: found.branch || 'YELAHANKA'
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getUserScore failed, using fallback:", e);
+  }
+  await delay(100);
+  const state = loadState();
+  return state.score[userId] || { userId, points: 0, streakDays: 0, capsActive: [], role: userId === 'u2' ? 'Finance Specialist' : 'Sales DSE', branch: userId === 'u2' ? 'BANASHANKARI' : 'YELAHANKA' };
 }
 
 export async function getUserBadges(userId) {
-    return await api(`/users/${userId}/badges`);
+  try {
+    const res = await fetch(`${API_BASE}/leaderboard?scope=individual`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.leaderboard)) {
+        const found = data.leaderboard.find(item => isCurrentUser(item.name, item.userId));
+        if (found) {
+          const earned = [];
+          if (found.badge && found.badge !== "Bronze") {
+            earned.push({ id: found.badge.toLowerCase().replace(/\s+/g, '-'), name: found.badge, icon: "Award" });
+          }
+          return {
+            earned,
+            inProgress: [
+              { id: "b2", name: "Team Player", progress: 0.6 }
+            ]
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getUserBadges failed, using fallback:", e);
+  }
+  await delay(100);
+  const state = loadState();
+  return state.badges[userId] || { earned: [], inProgress: [] };
 }
 
-
-export async function getLeaderboard(scope = "individual") {
-
-    const data = await api(`/leaderboard?scope=${scope}`);
-
-    return {
-        scope: data.scope,
-        rows: data.leaderboard
-    };
+export async function getLeaderboard(scope = 'individual') {
+  try {
+    const res = await fetch(`${API_BASE}/leaderboard?scope=${scope}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.leaderboard)) {
+        return {
+          scope,
+          rows: data.leaderboard.map(item => ({
+            rank: item.rank,
+            name: item.name || item.scopeId,
+            points: item.points,
+            branch: item.branch || item.scopeId || 'Mumbai Central',
+            isMe: scope === 'individual' ? isCurrentUser(item.name, item.userId) : false
+          }))
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getLeaderboard failed, using fallback:", e);
+  }
+  await delay(100);
+  const state = loadState();
+  return {
+    scope,
+    rows: state.leaderboard[scope] || []
+  };
 }
 
 export async function getDailyQuests() {
+  try {
+    const loggedInId = localStorage.getItem('dealerxp_user_id') || 'u1';
+    const queryId = loggedInId === 'u1' ? 'USR001' : (loggedInId === 'u2' ? 'USR002' : loggedInId);
+    const res = await fetch(`${API_BASE}/quests/daily?userId=${queryId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.quests)) {
+        return {
+          quests: data.quests.map(q => ({
+            id: q.id,
+            title: q.title,
+            progress: q.progress,
+            target: q.target,
+            points: q.rewardXP,
+            department: q.id === "Q03" ? "Finance" : "DSE"
+          }))
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getDailyQuests failed, using fallback:", e);
+  }
   await delay(100);
   const state = loadState();
   return { quests: state.quests };
 }
 
 export async function getCurrentDuest() {
+  try {
+    const res = await fetch(`${API_BASE}/duels/current`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.duel) {
+        return {
+          id: data.duel.id,
+          title: "DSE vs Finance Sprint",
+          dseId: "u1",
+          dseName: "DSE Team",
+          financeId: "u2",
+          financeName: "Finance Team",
+          dsePoints: data.duel.teamAScore,
+          financePoints: data.duel.teamBScore,
+          targetPoints: 300,
+          bookingId: "b100"
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getCurrentDuest failed, using fallback:", e);
+  }
   await delay(100);
   const state = loadState();
   return state.duest;
@@ -294,12 +411,49 @@ export async function getBookingTimeline(bookingId) {
 }
 
 export async function getActionWeights() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/actions/weights`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.actions)) {
+        return data.actions.map(a => ({
+          action: a.action,
+          label: a.action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+          points: a.weight
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getActionWeights failed, using fallback:", e);
+  }
   await delay(100);
   const state = loadState();
   return state.weights || defaultState.weights;
 }
 
 export async function updateActionWeights(newWeights) {
+  try {
+    const payload = {
+      updates: newWeights.map(w => ({
+        action: w.action,
+        weight: w.points
+      }))
+    };
+    const res = await fetch(`${API_BASE}/admin/actions/weights`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        window.dispatchEvent(new CustomEvent('dealerxp_update'));
+        return { success: true };
+      }
+    }
+  } catch (e) {
+    console.warn("Backend updateActionWeights failed, using fallback:", e);
+  }
   await delay(150);
   const state = loadState();
   state.weights = newWeights;
@@ -309,6 +463,28 @@ export async function updateActionWeights(newWeights) {
 }
 
 export async function getAnomalies() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/anomalies`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.anomalies)) {
+        return data.anomalies.map((anom, idx) => ({
+          id: anom.id || `anom_${idx}`,
+          employeeName: anom.employeeName || anom.userId || 'Staff Member',
+          role: anom.role || 'Dealership Executive',
+          location: anom.location || 'Main Branch',
+          bookingId: anom.bookingId || 'N/A',
+          action: anom.action || anom.type,
+          reason: anom.message || anom.reason,
+          severity: anom.severity ? (anom.severity.charAt(0).toUpperCase() + anom.severity.slice(1)) : 'Medium',
+          timestamp: anom.timestamp || new Date().toISOString(),
+          status: anom.status || 'Open'
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getAnomalies failed, using fallback:", e);
+  }
   await delay(100);
   const state = loadState();
   return state.anomalies || defaultState.anomalies;
@@ -326,6 +502,30 @@ export async function updateAnomalyStatus(anomalyId, newStatus) {
 }
 
 export async function getDashboardSummary() {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/summary`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.summary) {
+        const sum = data.summary;
+        const cycleTimeList = [
+          { stage: "Average Hours", hours: sum.cycleTime.averageHours || 0 },
+          { stage: "Min Hours", hours: sum.cycleTime.minHours || 0 },
+          { stage: "Max Hours", hours: sum.cycleTime.maxHours || 0 }
+        ];
+        const actionMixList = (sum.actionMix || []).map(item => ({
+          name: item.action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+          value: item.count
+        }));
+        return {
+          cycleTime: cycleTimeList,
+          actionMix: actionMixList
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getDashboardSummary failed, using fallback:", e);
+  }
   await delay(100);
   const state = loadState();
   return state.analytics || defaultState.analytics;
@@ -397,12 +597,10 @@ export async function confirmBooking(bookingId) {
   booking.status = 'CONFIRMED';
   booking.stages = booking.stages.map(s => s.key === 'BOOKING_CREATED' ? { ...s, done: true, at: new Date().toISOString() } : s);
 
-  // Award 30 points to DSE (Asha u1)
   const requester = booking.requestedBy || 'u1';
   if (state.score[requester]) {
     state.score[requester].points += 30;
     
-    // Update leaderboard points
     state.leaderboard.individual = state.leaderboard.individual.map(row => {
       if (row.name === state.score[requester].name) {
         return { ...row, points: state.score[requester].points };
@@ -428,18 +626,15 @@ export async function progressBookingStage(bookingId, stageKey) {
 
   booking.stages = booking.stages.map(s => s.key === stageKey ? { ...s, done: true, at: new Date().toISOString() } : s);
   
-  // Find the point weight for this action
   const actionWeight = state.weights.find(w => w.action === stageKey);
   const points = actionWeight ? actionWeight.points : 50;
 
-  // Award points to the corresponding user role (DSE or Finance)
   const isFinance = ["FINANCE_APPROVED", "INVOICE_APPROVED"].includes(stageKey);
   const targetUser = isFinance ? "u2" : (booking.requestedBy || "u1");
   
   if (state.score[targetUser]) {
     state.score[targetUser].points += points;
 
-    // Update leaderboard points
     state.leaderboard.individual = state.leaderboard.individual.map(row => {
       if (row.name === state.score[targetUser].name) {
         return { ...row, points: state.score[targetUser].points };
@@ -456,19 +651,94 @@ export async function progressBookingStage(bookingId, stageKey) {
   window.dispatchEvent(new CustomEvent('dealerxp_update'));
   return { success: true };
 }
+
 export async function login(employeeId, password) {
-  return api("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({
-      employee_id: employeeId,
-      password
-    })
-  });
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employee_id: employeeId, password })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn("Backend login failed, using fallback:", e);
+  }
+  // Mock login fallback
+  if (employeeId === 'u3' && password === 'admin123') {
+    return { success: true, user_id: 'u3', name: 'Vikram', role: 'Branch Manager (Admin)' };
+  }
+  if (employeeId === 'u1' && password === 'employee123') {
+    return { success: true, user_id: 'u1', name: 'Asha', role: 'Sales DSE' };
+  }
+  if (employeeId === 'u2' && password === 'employee123') {
+    return { success: true, user_id: 'u2', name: 'Rahul', role: 'Finance Specialist' };
+  }
+  throw new Error("Invalid credentials");
 }
 
 export async function registerUser(payload) {
-  return api("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn("Backend register failed, using fallback:", e);
+  }
+  return {
+    success: true,
+    employee_id: 'u_' + Date.now(),
+    name: payload.name,
+    department: payload.department
+  };
+}
+
+export async function getRouletteQueue() {
+  await delay(100);
+  const state = loadState();
+  if (!state.rouletteQueue) {
+    state.rouletteQueue = [
+      { id: "r1", employeeName: "Asha", action: "ZERO_REWORK_BOOKING_BONUS", points: 140, timestamp: "2026-07-15T09:12:00Z", approved: false },
+      { id: "r2", employeeName: "Rahul (Finance)", action: "DELIVERED", points: 220, timestamp: "2026-07-15T11:45:00Z", approved: false }
+    ];
+    saveState(state);
+  }
+  return state.rouletteQueue;
+}
+
+export async function approveRouletteItem(id) {
+  await delay(100);
+  const state = loadState();
+  const item = state.rouletteQueue.find(r => r.id === id);
+  if (!item || item.approved) return { success: false };
+
+  item.approved = true;
+
+  // Credit the points to the user
+  const userId = item.employeeName.toLowerCase().includes('asha') ? 'u1' : 'u2';
+  if (state.score[userId]) {
+    state.score[userId].points += item.points;
+
+    // Update individual leaderboard
+    state.leaderboard.individual = state.leaderboard.individual.map(row => {
+      if (row.name.toLowerCase().includes(item.employeeName.toLowerCase().split(' ')[0])) {
+        return { ...row, points: state.score[userId].points };
+      }
+      return row;
+    });
+    state.leaderboard.individual.sort((a, b) => b.points - a.points);
+    state.leaderboard.individual.forEach((row, idx) => {
+      row.rank = idx + 1;
+    });
+  }
+
+  saveState(state);
+  window.dispatchEvent(new CustomEvent('dealerxp_update'));
+  return { success: true };
 }

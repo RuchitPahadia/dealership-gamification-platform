@@ -8,14 +8,17 @@ export default function AchievementsPage() {
   const { data, error, loading } = useBadges(userId);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in text-neutral-800 dark:text-slate-100">
       {/* Header */}
-      <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-        <h1 className="text-2xl font-bold font-heading text-neutral-900 flex items-center gap-2">
-          <Award className="w-6 h-6 text-xp-gold" />
-          <span>My Achievements & Badges</span>
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">Unlock badges by performing scoring actions and collaborating with team members.</p>
+      <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-6 rounded-2xl relative overflow-hidden shadow-sm dark:shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-xp-gold/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-black font-heading text-neutral-900 dark:text-white flex items-center gap-2">
+            <Award className="w-6 h-6 text-xp-gold animate-bounce" />
+            <span>My Achievements & Unlocked Badges</span>
+          </h1>
+          <p className="text-neutral-550 dark:text-slate-400 text-sm mt-1">Unlock badges by performing scoring actions and collaborating with team members.</p>
+        </div>
       </div>
 
       {loading ? (
@@ -31,12 +34,13 @@ export default function AchievementsPage() {
       ) : (
         <div className="space-y-8">
           {/* Section: Earned Badges */}
-          <div>
-            <h3 className="font-heading text-md font-bold text-neutral-700 mb-4 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-xp-gold fill-xp-gold/10" />
+          <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm dark:shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-xp-gold/5 rounded-full blur-3xl pointer-events-none" />
+            <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white mb-6 flex items-center gap-2 relative z-10">
+              <Sparkles className="w-5 h-5 text-xp-gold fill-xp-gold/10" />
               <span>Earned Badges ({data.earned.length})</span>
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 relative z-10">
               {data.earned.map(badge => (
                 <BadgeProgress key={badge.id} badge={badge} isEarned={true} />
               ))}
@@ -44,12 +48,13 @@ export default function AchievementsPage() {
           </div>
 
           {/* Section: In-Progress Badges */}
-          <div>
-            <h3 className="font-heading text-md font-bold text-neutral-700 mb-4 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-neutral-400" />
+          <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm dark:shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 rounded-full blur-3xl pointer-events-none" />
+            <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white mb-6 flex items-center gap-2 relative z-10">
+              <Lock className="w-5 h-5 text-neutral-450 dark:text-slate-400" />
               <span>Locked & In Progress ({data.inProgress.length})</span>
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 relative z-10">
               {data.inProgress.map(badge => (
                 <BadgeProgress key={badge.id} badge={badge} isEarned={false} />
               ))}

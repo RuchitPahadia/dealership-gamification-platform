@@ -47,23 +47,24 @@ export default function FinanceDashboardPage({ userId: propUserId }) {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold font-heading text-neutral-900 flex items-center gap-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-6 rounded-2xl relative overflow-hidden shadow-sm dark:shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-black font-heading text-neutral-900 dark:text-white flex items-center gap-2">
             <span>Finance Workspace — {score.name}</span>
-            <Sparkles className="w-5 h-5 text-teal-500 fill-teal-500/20" />
+            <Sparkles className="w-5 h-5 text-teal-450 fill-teal-400/20" />
           </h1>
-          <p className="text-neutral-500 text-sm mt-1">
+          <p className="text-neutral-500 dark:text-slate-400 text-sm mt-1">
             Focus: Reviewing documents, approving loans, and triggering collaborative Relay Bonuses with sales counterparts.
           </p>
         </div>
-        <div className="text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg font-bold">
+        <div className="text-xs px-3.5 py-2 bg-orange-500/10 border border-orange-500/20 text-orange-405 rounded-xl font-bold uppercase tracking-wider relative z-10">
           Finance Department
         </div>
       </div>
 
       {/* Hero Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <ScoreCard score={score} department="Finance" />
         <StreakBadge streakDays={score.streakDays} />
       </div>
@@ -75,18 +76,19 @@ export default function FinanceDashboardPage({ userId: propUserId }) {
       </div>
 
       {/* Badges */}
-      <div className="bg-white rounded-xl border border-neutral-100 p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-heading text-lg font-semibold text-neutral-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-xp-gold" />
-            <span>Finance Badges</span>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-neutral-200 dark:border-slate-800 p-6 shadow-sm dark:shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-xp-gold/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex justify-between items-center mb-6 relative z-10">
+          <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+            <Award className="w-5 h-5 text-xp-gold fill-xp-gold/10" />
+            <span>Finance Department Badges</span>
           </h3>
-          <span className="text-xs text-neutral-400 font-medium">
+          <span className="text-xs text-neutral-400 dark:text-slate-400 font-extrabold uppercase tracking-wider">
             {badges.earned.length} Unlocked Badges
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
           {badges.earned.map(badge => (
             <BadgeProgress key={badge.id} badge={badge} isEarned={true} />
           ))}

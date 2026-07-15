@@ -8,6 +8,7 @@ export function useLeaderboard(scope) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     const fetchLeaderboard = () => {
       getLeaderboard(scope)

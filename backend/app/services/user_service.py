@@ -31,11 +31,28 @@ class UserService:
             }
         )
 
+        # Working-calendar-aware streaks: skip branch off-days
+        branch_name = latest.get("branch", "YELAHANKA").upper()
+        off_days = ["Saturday", "Sunday"] if "YELAHANKA" in branch_name else ["Sunday"]
+        
+        def is_streak_consecutive(d1, d2, off_days_list):
+            diff = d2 - d1
+            if diff.days == 1:
+                return True
+            # If gap is larger, check if every day in between is a configured off-day
+            curr = d1 + timedelta(days=1)
+            while curr < d2:
+                day_name = curr.strftime("%A")
+                if day_name not in off_days_list:
+                    return False
+                curr += timedelta(days=1)
+            return True
+
         streak = 1
         if len(dates) > 1:
             streak = 1
             for i in range(len(dates) - 1, 0, -1):
-                if dates[i] - dates[i - 1] == timedelta(days=1):
+                if is_streak_consecutive(dates[i - 1], dates[i], off_days):
                     streak += 1
                 else:
                     break

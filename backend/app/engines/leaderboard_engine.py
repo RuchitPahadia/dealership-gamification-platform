@@ -159,11 +159,18 @@ class LeaderboardEngine:
         else:
             grouped = defaultdict(int)
             
+            try:
+                from app.data.csv_loader import load_employees
+                employee_names = set(str(name).strip().upper() for name in load_employees()["name"].dropna())
+            except Exception:
+                employee_names = set()
             
             for item in scoring_events:
                 key = str(item.get(scope, "")).strip()
 
                 if key:
+                    if scope == "branch" and key.upper() in employee_names:
+                        continue
                     grouped[key] += int(item.get("points", 0))
 
             ranked = sorted(

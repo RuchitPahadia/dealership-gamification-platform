@@ -35,10 +35,10 @@ export function StageNode({ stage, status, index }) {
       };
     }
     return {
-      bg: 'bg-slate-800',
-      border: 'border-slate-700',
-      text: 'text-slate-500',
-      icon: <Clock className="w-4 h-4 text-slate-500" />
+      bg: 'bg-neutral-200 dark:bg-slate-800',
+      border: 'border-neutral-300 dark:border-slate-700',
+      text: 'text-neutral-400 dark:text-slate-500',
+      icon: <Clock className="w-4 h-4 text-neutral-400 dark:text-slate-500" />
     };
   };
 
@@ -63,12 +63,12 @@ export function StageNode({ stage, status, index }) {
             ? 'text-xp-gold font-extrabold' 
             : isCompleted 
               ? 'text-success-green' 
-              : 'text-slate-400'
+              : 'text-neutral-500 dark:text-slate-400'
         }`}>
           {stageLabels[stage.key] || stage.key}
         </h4>
         {stage.at && (
-          <span className="text-[10px] text-slate-500 block mt-1">
+          <span className="text-[10px] text-neutral-400 dark:text-slate-500 block mt-1">
             {new Date(stage.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}

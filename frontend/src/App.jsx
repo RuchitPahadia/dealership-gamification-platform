@@ -27,7 +27,7 @@ import {
   Moon,
   BarChart3
 } from 'lucide-react';
-import { triggerRelayBonus, triggerNoteSpam, resetMockState, getPendingBookings } from './api/client';
+import { triggerRelayBonus, triggerNoteSpam, resetMockState, getPendingBookings, getUserScore } from './api/client';
 
 import { LoginForm } from './components/dashboard/LoginForm';
 
@@ -35,6 +35,7 @@ function AppLayout({ children }) {
   const [userId, setUserId] = useState(localStorage.getItem('dealerxp_user_id') || '');
   const [theme, setTheme] = useState(localStorage.getItem('dealerxp_theme') || 'light');
   const [pendingCount, setPendingCount] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -68,6 +69,27 @@ function AppLayout({ children }) {
     window.addEventListener('dealerxp_update', handleUpdate);
     return () => {
       window.removeEventListener('dealerxp_update', handleUpdate);
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setUserProfile(null);
+      return;
+    }
+    const fetchProfile = () => {
+      getUserScore(userId)
+        .then(profile => {
+          setUserProfile(profile);
+        })
+        .catch(e => console.error("Failed to load user profile", e));
+    };
+
+    fetchProfile();
+
+    window.addEventListener('dealerxp_update', fetchProfile);
+    return () => {
+      window.removeEventListener('dealerxp_update', fetchProfile);
     };
   }, [userId]);
 
@@ -111,13 +133,19 @@ function AppLayout({ children }) {
     );
   }
 
+  const name = userProfile ? userProfile.name : (userId === 'u1' ? 'Asha' : (userId === 'u2' ? 'Rahul' : (userId === 'u3' ? 'Vikram' : 'Employee')));
+  const role = userProfile ? userProfile.role : (userId === 'u1' ? 'Sales DSE' : (userId === 'u2' ? 'Finance Specialist' : (userId === 'u3' ? 'Branch Manager' : 'DealerXP')));
+  const initials = name.charAt(0).toUpperCase();
+  const bg = role.includes("Finance") ? "bg-teal-500/20" : (role.includes("Manager") ? "bg-indigo-500/20" : "bg-brand-primary/20");
+  const text = role.includes("Finance") ? "text-teal-600 dark:text-teal-400" : (role.includes("Manager") ? "text-indigo-600 dark:text-indigo-400" : "text-brand-primary");
+
   const currentUser = {
-    name: "Employee",
-    role: "DealerXP",
-    initials: "E",
-    bg: "bg-brand-primary/20",
-    text: "text-brand-primary"
-};
+    name,
+    role,
+    initials,
+    bg,
+    text
+  };
 
 
 

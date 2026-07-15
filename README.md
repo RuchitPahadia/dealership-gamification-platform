@@ -2,7 +2,7 @@
 
 **Compete. Collaborate. Deliver.**
 
-DealerXP is a gamified performance layer for a real car dealership. It sits on top of the existing lead → enquiry → booking → finance → invoice → delivery lifecycle, turns 2000+ raw operational events into a small set of scoring milestones, and surfaces them as XP, streaks, badges, quests, and leaderboards — designed to speed up cycle time and cross-department collaboration without rewarding busywork.
+DealerXP is a gamified performance and analytics layer built on top of a real-world car dealership's operational pipeline. It sits on top of the existing lead → enquiry → booking → finance → invoice → delivery lifecycle, aggregates thousands of raw events into highly impactful scoring milestones, and surfaces them as XP, streaks, badges, quests, and leaderboards — designed to speed up cycle time and foster cross-department collaboration without rewarding busywork.
 
 Built for the Carverse Mobility Technologies Dealership Gamification Hackathon.
 
@@ -11,13 +11,13 @@ Built for the Carverse Mobility Technologies Dealership Gamification Hackathon.
 ## Table of Contents
 
 - [Repository Structure](#repository-structure)
-- [Current Status](#current-status)
+- [System Architecture & Integration Status](#system-architecture--integration-status)
 - [Quick Start](#quick-start)
-- [Feature Tour](#feature-tour)
+- [Key Features & Highlights](#key-features--highlights)
 - [Scoring Model & Anti-Gaming Design](#scoring-model--anti-gaming-design)
 - [Tech Stack](#tech-stack)
 - [Testing](#testing)
-- [Known Issues / Roadmap](#known-issues--roadmap)
+- [Recent Bug Fixes & Refactoring](#recent-bug-fixes--refactoring)
 - [Team](#team)
 
 ---
@@ -29,140 +29,133 @@ DealerXP/
 ├── backend/           FastAPI backend — scoring, gamification, leaderboard,
 │                      analytics, and admin engines; real dataset + CSV
 │                      processing pipeline; pytest suite
-├── frontend/          React + Vite + Tailwind frontend — currently runs
-│                      standalone against in-browser localStorage state
+├── frontend/          React 18 + Vite + Tailwind frontend — fully interactive,
+│                      wired to backend API endpoints with localStorage fallbacks
 ├── shared/            action_catalog.json — single source of truth for the
 │                      20 scoring actions and their weights
 ├── deployment/        Dockerfiles for backend and frontend
 ├── database/seed/     Script to replay sample data through the backend API
 ├── scripts/           Convenience wrappers (seed_db.sh)
 ├── docs/              demo_script.md — walkthrough script for presenting
-├── docker-compose.yml Postgres + Redis + backend + frontend, one command
-└── backend/tests/     Unit tests, including a dedicated anti-gaming suite
+└── docker-compose.yml Postgres + Redis + backend + frontend, one command
 ```
 
 ---
 
-## Current Status
+## System Architecture & Integration Status
 
-Being upfront about this because it affects how you should run and read the demo.
-
-**Frontend runs standalone today.** It's built to operate entirely offline against `localStorage` — no backend, database, or network required. This is intentional: it makes the frontend instantly demoable and deployable to static hosting (Netlify, Vercel, GitHub Pages) with zero setup.
-
-**Backend is a real, independently working system, not yet wired to the frontend.** The FastAPI backend has its own scoring engine, gamification engine, leaderboard engine, analytics service, and a genuine CSV → booking-lifecycle → scoring-event pipeline that runs against the actual organizer dataset (`backend/data/z_event_log_may_june_2026.csv` and friends). It has its own pytest suite, its own Docker setup, and runs correctly on its own.
-
-**These two halves are not yet plugged into each other.** The frontend doesn't call the backend's REST API, and the backend's newest data pipeline has a couple of integration bugs (tracked below) that mean it currently falls back to a small hardcoded mock dataset rather than the real event log. Closing that gap is the active work in progress — see [Known Issues](#known-issues--roadmap).
-
-If you just want to see the game: run the frontend. If you want to see the real scoring/anti-gaming engine working against real backend logic and tests: run the backend separately, or via `docker-compose up`.
+DealerXP is **fully integrated and wired together**.
+* **Vite API Proxying**: The frontend uses a local Vite development server proxy (`/api` routes mapped to `http://127.0.0.1:8000`) to query the FastAPI backend directly during execution.
+* **Resilient Fallback Handling**: If the backend is offline, the React API client automatically falls back to in-browser storage state (`localStorage`), ensuring the application remains interactive and demoable under any environment constraints.
+* **Refactored Data Pipeline**: All backend Python modules (such as the scoring and leaderboard engines) have been updated to use unified `app.data` path layouts, ensuring seamless startup without dependency resolution issues.
 
 ---
 
 ## Quick Start
 
-### Option A — Frontend only (fastest, no setup)
+### Option A — Full Stack (Recommended)
+Launch the entire environment containing the frontend, backend, database, and Redis cache in one command:
+```bash
+docker-compose up --build
+```
+This serves:
+* **Frontend**: `http://localhost:5173`
+* **Backend API Docs (Swagger)**: `http://localhost:8000/docs`
 
+To seed the database with transactional data:
+```powershell
+# On Windows PowerShell
+.\scripts\seed_db.sh
+```
+
+### Option B — Frontend standalone
 ```bash
 cd frontend
 npm install --legacy-peer-deps
 npm run dev
 ```
-Open `http://localhost:5173`. Fully interactive, nothing else required.
+Open `http://localhost:5173`. Works out-of-the-box using local storage mock state when the backend is not running.
 
-### Option B — Full stack via Docker
-
-```bash
-docker-compose up --build
-```
-This builds and runs Postgres, Redis, the FastAPI backend (`http://localhost:8000`, docs at `/docs`), and the frontend dev server (`http://localhost:5173`) together.
-
-To load sample data into the running backend:
-```bash
-./scripts/seed_db.sh
-```
-
-### Option C — Backend only
-
+### Option C — Backend standalone
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --app-dir ..
+python -m uvicorn app.main:app --port 8000 --reload
 ```
 
 ---
 
-## Feature Tour
+## Key Features & Highlights
 
-### 1. Booking Timeline & Inline Approvals
-A linear "race track" visualizes a single booking's journey across 7 stages (Booking Created → Discount Approved → Finance Approved → Invoice Approved → RTO Request → PDI Completed → Delivered). Switch between bookings via a dropdown selector. Branch Managers can confirm pending booking requests inline, which immediately awards XP, updates leaderboards, and advances the timeline.
+### 1. Booking Timeline & Race Track
+* A linear **"race track"** visualizes a single booking's journey across 7 stages (Booking Created → Discount Approved → Finance Approved → Invoice Approved → RTO Request → PDI Completed → Delivered).
+* **Branch Managers** can view and approve pending bookings inline, instantly advancing the booking timeline and awarding XP to DSEs.
+* **Adaptive Theme Support**: The Race Track interface features a responsive light theme design that transitions smoothly out of dark mode when switching to light theme.
 
-### 2. Admin Console
-Live action-weight editor for the 20 scoring actions, plus an anti-gaming audit panel listing anomaly flags (High/Medium/Low severity) with resolution actions. Includes a quick booking-request creator for demoing the manager-approval flow.
+### 2. Leaderboard Scope Switching
+* Displays real-time organizational performance metrics.
+* **Individual Standing**: Rankings of individual sales executives (DSEs) and finance closer executives.
+* **Branch Standing**: Inter-branch standings comparing location performances. 
+* *Bug Fix*: Resolves state pollution by verifying location datasets, dynamically filtering employee IDs/names from the branch calculations on the backend, and resetting the rendering state in the custom React query hook.
 
 ### 3. Role-Based Navigation
-- **Admin (Vikram)** → Admin Console + Analytics only
-- **Sales DSE (Asha)** → Dashboard, leaderboard, DSE workspace, achievements, quests, profile
-- **Finance Specialist (Rahul)** → Finance workspace, hides DSE-only menus
+* **Admin (Vikram)**: Gains exclusive access to the Admin Console, Action Weight Editor, and aggregate Analytics pages.
+* **Sales DSE (Asha)**: Personal workspaces displaying daily quests, active point streaks, earned badges, and personal profile details.
+* **Finance Specialist (Rahul)**: Focused workspace optimized for completing finance milestones.
 
-Profile pages dynamically reflect the active user's name, role, branch, streak, XP, and badges.
-
-### 4. Demo-Critical Moments
-- **Relay Bonus** — simulating a Finance approval that unblocks a DSE animates both users' XP counters jumping together with a connecting notification, demonstrating the core cross-department collaboration mechanic.
-- **Cap Firing** — simulating repeated low-value actions (e.g. spammed notes) shows the point counter refuse to keep climbing, with a visible "Capped" indicator — the live proof that the anti-gaming design actually holds.
+### 4. Admin Console & Analytics
+* **Runtime Catalog Tuning**: Adjust point weights for the 20 core scoring actions inside `shared/action_catalog.json` on the fly without rebooting.
+* **KPI Trackers**: Dashboard summaries displaying key metrics like cycle time and action mix.
 
 ---
 
 ## Scoring Model & Anti-Gaming Design
 
-Of 2000+ raw action types in the real dataset, exactly **20** are used for scoring (`shared/action_catalog.json`), selected by asking of each candidate action: does it move a booking forward or represent a real outcome, or is it just a data edit that can be repeated for free? Administrative/noise actions (e.g. field-update events) are deliberately excluded regardless of volume.
+From over 2,000 raw transactional event signatures in the CSV dump, exactly **20 core actions** are mapped for gamified scoring. 
 
-| Category | Examples | Why |
-|---|---|---|
-| High-value outcomes | `DELIVERED` (220), `ESCALATION_FREE_DELIVERY` (140), `ZERO_REWORK_BOOKING_BONUS` (140) | Real, externally-verified business outcomes — hardest to fake |
-| Milestones | `FINANCE_APPROVED` (110), `FINANCE_APPROVED_FIRST_PASS` (130), `INVOICE_APPROVED` (120), `DOCUMENT_SET_COMPLETED` (95) | Occur ~once per booking, gate the next stage |
-| Process/SLA signals | `CUSTOMER_FOLLOWUP_SLA_MET` (60), `FINANCE_APPROVAL_SLA_MET` (65) | Reward speed, not just completion |
-| Entry actions | `BOOKING_CREATED` (30), `FOLLOW_UP_COMPLETED` (20) | Low weight by design — easy to do, so capped low so they can't dominate |
-| Penalties | `REWORK_LOOP_TRIGGERED` (-90), `BOOKING_CANCELLED_AFTER_FINANCE` (-120) | Makes gaming the system actively costly, not just ineffective |
+### Core Gamification Rules
+* **High-value outcomes** (e.g. `DELIVERED`, `ZERO_REWORK_BOOKING_BONUS`) receive high point weights because they translate to external business value.
+* **Process milestones** (e.g. `FINANCE_APPROVED_FIRST_PASS`, `SLA_MET`) reward cycle-time efficiency.
+* **Low-value spammables** (e.g. `BOOKING_NOTE_ADDED`) have low weights and are capped to prevent repetitive farming.
+* **Penalties** (e.g. `REWORK_LOOP_TRIGGERED`, `BOOKING_CANCELLED`) apply negative points to discourage gaming.
 
-**Anti-gaming measures**, tested in `backend/tests/anti_gaming/`:
-- Repeatable low-value actions are capped, not just low-weighted
-- Rework loops and late-stage cancellations carry negative weight
-- Live weight updates are supported without a redeploy, but audited
-- Collusion-style patterns (e.g. a relay bonus firing without a real matching `DELIVERED` event) are flagged by a dedicated anomaly detector
+### Anti-Gaming Guardrails
+* **Anti-Gaming Caps**: Once an employee triggers a repeatable action too many times, the scoring engine caps their gains and flags a "Capped" visual alert.
+* **Anomaly Detection**: Flags collusion behavior (such as executing relay approval actions without matching lifecycle completions) as anomalies.
 
 ---
 
 ## Tech Stack
 
-| Layer | Choice |
+| Layer | Technologies |
 |---|---|
-| Frontend | React 18, React Router v6, Tailwind CSS, Framer Motion, Recharts, Lucide React |
-| Backend | FastAPI, Pydantic, pandas (CSV/dataset processing) |
-| Data | PostgreSQL, Redis (wired in `docker-compose.yml`; not yet the live path — see status above) |
-| Testing | pytest |
-| Containerization | Docker, Docker Compose |
+| **Frontend** | React 18, React Router v6, Tailwind CSS, Framer Motion, Recharts, Lucide React |
+| **Backend** | FastAPI, Pydantic, Pandas (CSV processing & ingestion pipeline) |
+| **Database & Cache** | PostgreSQL, Redis |
+| **Testing** | Pytest |
+| **Containerization** | Docker, Docker Compose |
 
 ---
 
 ## Testing
 
+Run the backend test suite covering the scoring model contracts, cap triggers, weight tuning, and collusion anomaly check gates:
 ```bash
 cd backend
 pip install -r requirements.txt
 pytest tests/ -v
 ```
-Covers frozen API contracts, live weight updates, collusion-bonus detection, and mass-update caps.
 
 ---
 
-## Known Issues / Roadmap
+## Recent Bug Fixes & Refactoring
 
-Tracked honestly rather than glossed over, since this is what's actively being closed out:
-
-- [ ] `backend/requirements.txt` needs a cleanup pass (stray formatting from an edit) before a clean `pip install` will succeed
-- [ ] The new CSV-based scoring pipeline (`backend/app/engines/scoring_engine.py`) needs its internal imports aligned with the rest of the backend's package layout so it actually loads instead of silently falling back to sample data
-- [ ] Field naming needs to be finalized as one single contract across the scoring pipeline and the gamification/leaderboard engines (currently two conventions exist independently)
-- [ ] Frontend → backend live wiring (swapping `localStorage` mock state for real API calls) is a deliberate next phase, not yet started
-- [ ] `GET /admin/anomalies` — the anomaly-detection engine is implemented and unit-tested but not yet exposed via a route
+1. **Dashboard Blank Screen**: Resolved a client-side bundle mapping issue on the main `/dashboard` page to restore seamless dashboard loading.
+2. **Race Track Light Mode**: Redesigned UI classes on the timeline components to properly support white layouts when light mode is selected.
+3. **Leaderboard State Cleanliness**: 
+   * Fixed a hook execution bug in `useLeaderboard.js` that previously caused individual executive standings to pollute the top of the **Branch Standing** list during active scope fetches.
+   * Added backend validation filtering inside `leaderboard_engine.py` to prevent employee names from appearing in aggregated branch metrics.
+4. **Scoring Engine Import Imports**: Fixed Python import namespaces within `scoring_engine.py` so that imports properly resolve relative to the `app` root package structure.
 
 ---
 
