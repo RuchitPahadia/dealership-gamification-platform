@@ -1,17 +1,31 @@
-# Node modules & build outputs
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node
 node_modules/
 dist/
-.vite/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
 .env
+.env.*
 
-# Ignore stray AI/planning notes at the repo root, but NOT docs/ or README.md —
-# the blanket **/*.md rule this replaced was silently excluding docs/demo_script.md,
-# a required deliverable, from every commit.
-/Agent.md
-/PRD.md
-/ai.txt
-!README.md
-!docs/*.md
+# OS
+.DS_Store
+Thumbs.db
 
-# Local, non-shared state for the seed script (resume/idempotency tracking)
-database/seed/.seed_state.json
+# Logs
+*.log
