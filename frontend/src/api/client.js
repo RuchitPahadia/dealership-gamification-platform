@@ -313,13 +313,40 @@ export function getTierBadge(points) {
   return "💠 Diamond";
 }
 
+function findUserInLeaderboard(leaderboard, targetIdOrName) {
+  if (!targetIdOrName) return null;
+  const search = targetIdOrName.toLowerCase();
+  
+  // Try exact match on userId
+  let found = leaderboard.find(item => item.userId && item.userId.toLowerCase() === search);
+  if (found) return found;
+  
+  // Try mapping common mock ids
+  if (search === 'u1') {
+    found = leaderboard.find(item => item.name && item.name.toLowerCase().includes('asha'));
+    if (found) return found;
+  }
+  if (search === 'u2') {
+    found = leaderboard.find(item => item.name && item.name.toLowerCase().includes('rahul'));
+    if (found) return found;
+  }
+  if (search === 'u3') {
+    found = leaderboard.find(item => item.name && item.name.toLowerCase().includes('vikram'));
+    if (found) return found;
+  }
+
+  // Try matching name substring
+  found = leaderboard.find(item => item.name && item.name.toLowerCase().includes(search));
+  return found;
+}
+
 export async function getUserScore(userId) {
   try {
     const res = await fetch(`${API_BASE}/leaderboard?scope=individual`);
     if (res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.leaderboard)) {
-        const found = data.leaderboard.find(item => isCurrentUser(item.name, item.userId));
+        const found = findUserInLeaderboard(data.leaderboard, userId);
         if (found) {
           const state = loadState();
           const localPoints = state.score[userId]?.points || 0;
@@ -346,7 +373,24 @@ export async function getUserScore(userId) {
   }
   await delay(100);
   const state = loadState();
-  const profile = state.score[userId] || { userId, points: 0, streakDays: 0, capsActive: [], role: userId === 'u2' ? 'Finance Specialist' : 'Sales DSE', branch: userId === 'u2' ? 'BANASHANKARI' : 'YELAHANKA', delightMultiplier: 1.0 };
+  const mockNames = {
+    'u1': 'Asha',
+    'u2': 'Rahul',
+    'u3': 'Vikram',
+    'USR001': 'Asha',
+    'USR002': 'Rahul',
+    'USR003': 'Vikram'
+  };
+  const profile = state.score[userId] || { 
+    userId, 
+    name: mockNames[userId] || (userId.startsWith('USR') ? 'Employee ' + userId : userId),
+    points: 0, 
+    streakDays: 5, 
+    capsActive: [], 
+    role: userId === 'u2' ? 'Finance Specialist' : 'Sales DSE', 
+    branch: userId === 'u2' ? 'BANASHANKARI' : 'YELAHANKA', 
+    delightMultiplier: 1.0 
+  };
   return {
     ...profile,
     badge: getTierBadge(profile.points)
@@ -389,7 +433,7 @@ export async function getUserBadges(userId) {
     if (res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.leaderboard)) {
-        const found = data.leaderboard.find(item => isCurrentUser(item.name, item.userId));
+        const found = findUserInLeaderboard(data.leaderboard, userId);
         if (found) {
           const state = loadState();
           const localPoints = state.score[userId]?.points || 0;
@@ -954,4 +998,193 @@ export async function triggerCustomerReview() {
   saveState(state);
   window.dispatchEvent(new CustomEvent('dealerxp_update'));
   return { success: true };
+}
+
+export async function getUserPerformance(userId) {
+  const user = await getUserScore(userId);
+  let backendData = null;
+  
+  try {
+    const queryId = userId === 'u1' ? 'USR001' : (userId === 'u2' ? 'USR002' : userId);
+    const res = await fetch(`${API_BASE}/users/${queryId}/performance`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.profile && data.profile.name) {
+        backendData = data;
+      }
+    }
+  } catch (e) {
+    console.warn("Backend getUserPerformance failed, using fallback:", e);
+  }
+
+  // Generate deterministic but high-variance mock data using a seed based on the userId
+  const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const isAsha = userId === 'u1' || (user.name && user.name.toLowerCase().includes('asha'));
+  const isRahul = userId === 'u2' || (user.name && user.name.toLowerCase().includes('rahul'));
+  
+  // Custom Action Mix with distinct distributions and variance
+  let actionMix = [];
+  if (isAsha) {
+    actionMix = [
+      { name: "Deliveries", value: 6 },
+      { name: "Bookings Created", value: 12 },
+      { name: "Documentation", value: 8 },
+      { name: "Discount Approvals", value: 4 },
+      { name: "RTO Uploads", value: 5 },
+      { name: "Booking Notes", value: 18 }
+    ];
+  } else if (isRahul) {
+    actionMix = [
+      { name: "Finance Approved", value: 14 },
+      { name: "Invoice Approved", value: 11 },
+      { name: "Clean Relay Bonus", value: 7 },
+      { name: "Follow-Ups Closed", value: 15 },
+      { name: "Booking Notes", value: 9 }
+    ];
+  } else {
+    const hashVal = seed % 3;
+    if (hashVal === 0) {
+      actionMix = [
+        { name: "Deliveries", value: 8 },
+        { name: "Bookings Created", value: 10 },
+        { name: "Discount Approvals", value: 7 },
+        { name: "RTO Uploads", value: 6 }
+      ];
+    } else if (hashVal === 1) {
+      actionMix = [
+        { name: "Finance Approved", value: 18 },
+        { name: "Invoice Approved", value: 12 },
+        { name: "Clean Relay Bonus", value: 5 }
+      ];
+    } else {
+      actionMix = [
+        { name: "Deliveries", value: 3 },
+        { name: "Bookings Created", value: 15 },
+        { name: "Documentation", value: 12 },
+        { name: "Booking Notes", value: 20 }
+      ];
+    }
+  }
+
+  // Create high-variance XP history (leaps, plateaus, spikes)
+  const points = user.points || 280;
+  
+  const f1 = (seed % 6) / 100; // e.g. 0.05
+  const f2 = ((seed * 2) % 8) / 100; // e.g. 0.04
+  
+  const xpHistory = [
+    { date: "2026-07-09", xp: Math.round(points * (0.12 + f1)) },
+    { date: "2026-07-10", xp: Math.round(points * (0.12 + f1)) }, // Plateau
+    { date: "2026-07-11", xp: Math.round(points * (0.45 + f2)) }, // Big Spike
+    { date: "2026-07-12", xp: Math.round(points * (0.47 + f2)) }, // Tiny Growth
+    { date: "2026-07-13", xp: Math.round(points * (0.82 - f1)) }, // Big Leap
+    { date: "2026-07-14", xp: Math.round(points * (0.82 - f1)) }, // Plateau
+    { date: "2026-07-15", xp: points } // Current
+  ];
+
+  // Dynamic cycle time variation
+  const avgCycleTimeHours = Math.round((10.4 + ((seed % 12) * 1.3)) * 10) / 10;
+  const peerAverageXp = Math.round(320 + ((seed % 15) * 14));
+  
+  const allPossibleEvents = [
+    { booking_id: "BLR-381", action: "DELIVERED", points: 300, timestamp: "2026-07-15T09:12:00Z" },
+    { booking_id: "BLR-381", action: "PDI_COMPLETED", points: 100, timestamp: "2026-07-15T08:00:00Z" },
+    { booking_id: "MUM-992", action: "RELAY_BONUS", points: 50, timestamp: "2026-07-14T15:32:00Z" },
+    { booking_id: "MUM-992", action: "FINANCE_APPROVED", points: 100, timestamp: "2026-07-14T15:30:00Z" },
+    { booking_id: "BLR-122", action: "BOOKING_NOTE_ADDED", points: 20, timestamp: "2026-07-14T11:45:00Z" },
+    { booking_id: "BLR-122", action: "DISCOUNT_APPROVED", points: 50, timestamp: "2026-07-13T09:20:00Z" },
+    { booking_id: "BLR-102", action: "BOOKING_CREATED", points: 100, timestamp: "2026-07-12T10:15:00Z" },
+    { booking_id: "PUN-404", action: "RTO_REQUEST", points: 50, timestamp: "2026-07-11T16:40:00Z" },
+    { booking_id: "PUN-404", action: "INVOICE_APPROVED", points: 100, timestamp: "2026-07-11T14:10:00Z" },
+    { booking_id: "DEL-887", action: "FOLLOW_UP_COMPLETED", points: 15, timestamp: "2026-07-10T11:05:00Z" }
+  ];
+
+  let recentEvents = [];
+  if (isAsha) {
+    recentEvents = allPossibleEvents.filter(e => !["FINANCE_APPROVED", "INVOICE_APPROVED"].includes(e.action));
+  } else if (isRahul) {
+    recentEvents = allPossibleEvents.filter(e => !["DELIVERED", "RTO_REQUEST", "DISCOUNT_APPROVED"].includes(e.action));
+  } else {
+    const startIdx = seed % 4;
+    recentEvents = allPossibleEvents.slice(startIdx, startIdx + 6);
+  }
+
+  if (backendData) {
+    return {
+      profile: {
+        ...user,
+        ...backendData.profile,
+        name: backendData.profile.name || user.name || 'Employee'
+      },
+      actionMix: backendData.actionMix && backendData.actionMix.length > 0 ? backendData.actionMix : actionMix,
+      xpHistory: backendData.xpHistory && backendData.xpHistory.length > 0 ? backendData.xpHistory : xpHistory,
+      avgCycleTimeHours: backendData.avgCycleTimeHours || avgCycleTimeHours,
+      peerAverageXp: backendData.peerAverageXp || peerAverageXp,
+      eventsCount: backendData.eventsCount || recentEvents.length,
+      recentEvents: backendData.recentEvents && backendData.recentEvents.length > 0 ? backendData.recentEvents : recentEvents
+    };
+  }
+
+  return {
+    profile: user,
+    actionMix,
+    xpHistory,
+    avgCycleTimeHours,
+    peerAverageXp,
+    eventsCount: recentEvents.length,
+    recentEvents
+  };
+}
+
+export async function getUserCoachAdvice(userId, message) {
+  try {
+    const queryId = userId === 'u1' ? 'USR001' : (userId === 'u2' ? 'USR002' : userId);
+    const res = await fetch(`${API_BASE}/users/${queryId}/coach`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (e) {
+    console.warn("Backend getUserCoachAdvice failed, using fallback:", e);
+  }
+
+  // Fallback if backend is offline or fails
+  await delay(100);
+  const user = await getUserScore(userId);
+  const name = user.name || 'Team Member';
+  const points = user.points || 0;
+  const streak = user.streakDays || 0;
+  const badge = user.badge || 'Bronze';
+  const role = user.role || 'Dealer Executive';
+  
+  let advice = `Hey ${name}, I'm analyzing your current telemetry. You have ${points} XP (${badge} Rank). Keep completing active lifecycle milestones to optimize your point gains!`;
+  const q = message.toLowerCase();
+  
+  if (!q.trim()) {
+    if (role.includes('Finance')) {
+      advice = `Hi ${name}! As a Finance Specialist, you are currently at ${points} XP ({badge} Rank) with a ${streak}-day active streak. Quick tip: collaborate with Sales DSEs on Yelahanka branch bookings to unlock the Clean Relay Collaboration Bonus (+50 XP)!`;
+    } else if (role.includes('Manager') || userId === 'u3') {
+      advice = `Welcome back, Branch Manager Vikram! Our current branch cycle time is averaging 67.6 hours. You can inspect branch-wide analytics and manage point weights in the Admin Console.`;
+    } else {
+      advice = `Hi ${name}! You currently have ${points} XP (${badge} Rank) and a ${streak}-day active streak. Make sure to complete a vehicle delivery milestone next to apply your customer delight multiplier!`;
+    }
+  } else if (q.includes('rank') || q.includes('level') || q.includes('fast') || q.includes('points')) {
+    advice = `To boost your XP quickly from your current ${badge} tier: \n1. Complete vehicle deliveries (300 XP)\n2. Log finance approvals (100 XP)\n3. Hand off bookings to other departments to trigger the Relay Collaboration Bonus (+50 XP) which has no daily limits!`;
+  } else if (q.includes('cap') || q.includes('limit') || q.includes('zero') || q.includes('warning') || q.includes('note')) {
+    advice = `I checked your events. Low-effort actions like notes have a daily cap of 5. To continue scoring points, prioritize higher-value milestones such as RTO requests (+50 XP) or PDI completions (+100 XP).`;
+  } else if (q.includes('relay') || q.includes('collaboration') || q.includes('bonus')) {
+    advice = `The Relay Collaboration Bonus (+50 XP) rewards fast handoffs. It triggers when a Sales DSE and a Finance Specialist complete successive steps on the same booking lifecycle.`;
+  } else if (q.includes('multiplier') || q.includes('delight') || q.includes('review')) {
+    advice = `You can earn a Customer Delight Multiplier (up to 1.05x) by securing 5-star customer feedback. The multiplier automatically boosts your next DELIVERED action and then resets.`;
+  }
+
+  return {
+    success: true,
+    user_id: userId,
+    advice
+  };
 }
